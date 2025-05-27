@@ -1,0 +1,14 @@
+{
+    "width": 1000,
+    "height": 600,
+    "name": "阿斯顿",
+    "items":{
+        "button1":{
+            "type":"button",
+            "text":"按钮1",
+            "onClick":"ButtonClick1",
+            "style":"button",
+            "name":"button1"
+        }
+    }
+}
