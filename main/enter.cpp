@@ -132,10 +132,13 @@ private:
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-        vkCreateSemaphore(vkDevice, &semaphoreCreateInfo, nullptr, &imageAvail);
-        vkCreateSemaphore(vkDevice, &semaphoreCreateInfo, nullptr, &renderDone);
-        vkCreateFence(vkDevice, &fenceCreateInfo, nullptr, &fence);
+        VkResult result;
+        result = vkCreateSemaphore(vkDevice, &semaphoreCreateInfo, nullptr, &imageAvail);
+        std::cout << (result == VK_SUCCESS) << std::endl;
+        result = vkCreateSemaphore(vkDevice, &semaphoreCreateInfo, nullptr, &renderDone);
+        std::cout << (result == VK_SUCCESS) << std::endl;
+        result = vkCreateFence(vkDevice, &fenceCreateInfo, nullptr, &fence);
+        std::cout << (result == VK_SUCCESS) << std::endl;
     }
 
     void DrawFrame()
@@ -188,6 +191,7 @@ private:
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
         VkShaderModule shaderModule;
         VkResult result = vkCreateShaderModule(vkDevice, &createInfo, nullptr, &shaderModule);
+        std::cout << (result == VK_SUCCESS) << std::endl;
         return shaderModule;
     }
 
@@ -206,7 +210,8 @@ private:
             framebufferInfo.width = swapChainExtent.width;
             framebufferInfo.height = swapChainExtent.height;
             framebufferInfo.layers = 1;
-            vkCreateFramebuffer(vkDevice, &framebufferInfo, nullptr, &frameBuffers[i]);
+            VkResult result = vkCreateFramebuffer(vkDevice, &framebufferInfo, nullptr, &frameBuffers[i]);
+            std::cout << (result == VK_SUCCESS) << std::endl;
         }
 
         QueueFamilyIndices indices = FindFamilys();
@@ -216,6 +221,7 @@ private:
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         VkResult result = vkCreateCommandPool(vkDevice, &poolInfo, nullptr, &commandPool);
+        std::cout << (result == VK_SUCCESS) << std::endl;
 
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -240,7 +246,7 @@ private:
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        VkClearValue clearColor = {{{0.0f, 1.0f, 1.0f, 1.0f}}};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
@@ -305,6 +311,7 @@ private:
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
         VkResult result = vkCreateRenderPass(vkDevice, &renderPassInfo, nullptr, &renderPass);
+        std::cout << (result == VK_SUCCESS) << std::endl;
     }
 
     void CreateGraphicPipeline()
@@ -346,6 +353,7 @@ private:
         viewPort.y = 0.0f;
         viewPort.width = (float)swapChainExtent.width;
         viewPort.height = (float)swapChainExtent.height;
+        std::cout << "asd: " << swapChainExtent.width << " " << swapChainExtent.height << std::endl;
         viewPort.minDepth = 0.0f;
         viewPort.maxDepth = 1.0f;
 
@@ -360,6 +368,8 @@ private:
         viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewportState.viewportCount = 1;
         viewportState.scissorCount = 1;
+        viewportState.pViewports = nullptr;
+        viewportState.pScissors = nullptr;
 
         VkPipelineRasterizationStateCreateInfo rasterInfo = {};
         rasterInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -411,7 +421,7 @@ private:
         pipelineLayoutInfo.pSetLayouts = nullptr;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
         VkResult result = vkCreatePipelineLayout(vkDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-
+        std::cout << (result == VK_SUCCESS) << std::endl;
         VkGraphicsPipelineCreateInfo pipelineInfo = {};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineInfo.stageCount = 2;
@@ -431,7 +441,7 @@ private:
         pipelineInfo.basePipelineIndex = -1;
 
         result = vkCreateGraphicsPipelines(vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
-
+        std::cout << (result == VK_SUCCESS) << std::endl;
         vkDestroyShaderModule(vkDevice, fragShaderModule, nullptr);
         vkDestroyShaderModule(vkDevice, vertShaderModule, nullptr);
     }
@@ -495,6 +505,7 @@ private:
         createInfo.enabledLayerCount = 0;
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
+        std::cout << (result == VK_SUCCESS) << std::endl;
         if (result != VK_SUCCESS)
         {
             std::cout << result << std::endl;
@@ -567,6 +578,7 @@ private:
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
         result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &vkDevice);
+        std::cout << (result == VK_SUCCESS) << std::endl;
         if (result != VK_SUCCESS)
         {
             return 4;
@@ -685,9 +697,10 @@ private:
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
         createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;                             // 2d 中为1，3d的是别的
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // 直接用它的颜色
-        createInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;     // 需要后处理
+        createInfo.imageArrayLayers = 1; // 2d 中为1，3d的是别的
+        // createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // 直接用它的颜色
+        // createInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;     // 需要后处理
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // 图像既能作为颜色附件，也能作为传输目标
 
         QueueFamilyIndices indices = FindFamilys();
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -712,6 +725,7 @@ private:
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
         VkResult result = vkCreateSwapchainKHR(vkDevice, &createInfo, nullptr, &swapChain);
+        std::cout << (result == VK_SUCCESS) << std::endl;
         if (result != VK_SUCCESS)
         {
             return false;
