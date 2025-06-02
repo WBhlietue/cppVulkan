@@ -16,7 +16,7 @@ void OnStart()
 
 void OnUpdate(float deltaTime)
 {
-    std::cout << "frame rate: " << 1 / deltaTime << std::endl;
+    // std::cout << "frame rate: " << 1 / deltaTime << std::endl;
     if (forward)
     {
         a += deltaTime;
@@ -33,5 +33,5 @@ void OnUpdate(float deltaTime)
             forward = true;
         }
     }
-    MoveShape(obj, 0, -100 + a * 200);
+    // MoveShape(obj, 100, -100 + a * 200);
 }
