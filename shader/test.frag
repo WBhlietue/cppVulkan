@@ -27,6 +27,12 @@ void main() {
     y /= height;
 
     // y+=1;
+    if(fragColor == vec3(0.0,0.0,1.0)){
+        outColor=vec4(0.0,0.0,1.0,1.0);
+    }else
+    if(fragColor == vec3(0.0,1.0,0.0)){
+        outColor=vec4(0.0,1.0,0.0,1.0);
+    }else
     if(fragColor == vec3(1.0,1.0,1.0)){
         outColor = vec4(1.0,1.0,1.0,1.0);
     }else{
