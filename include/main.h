@@ -2,7 +2,8 @@
 #define main_h
 
 #include<string>
-void Start_Main();
+void OnStart();
+void OnUpdate(float deltaTime);
 extern std::string mainPage;
 
 #endif

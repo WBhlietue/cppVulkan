@@ -12,10 +12,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE  SOURCES 
 "${CMAKE_SOURCE_DIR}/src/*.cpp"
-"${CMAKE_SOURCE_DIR}/main/entry.cpp"
 "${CMAKE_SOURCE_DIR}/main/enter.cpp"
 # "${CMAKE_SOURCE_DIR}/main/windows/*.cpp"
 )
+
+if (MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 add_executable(${PROJECT_NAME}  ${SOURCES})
 
