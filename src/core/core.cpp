@@ -2,7 +2,7 @@
 
 static int objectID = 0;
 
-Object DrawRectangle(int width, int height, int x, int y, glm::vec3 color)
+Object DrawRectangle(int width, int height, int x, int y, glm::vec4 color, float borderRadius)
 {
     Object object;
     object.id = objectID++;
@@ -11,6 +11,7 @@ Object DrawRectangle(int width, int height, int x, int y, glm::vec3 color)
     object.x = x;
     object.y = y;
     object.color = color;
+    object.borderRadius = borderRadius;
     AddShape(object);
     return object;
 }

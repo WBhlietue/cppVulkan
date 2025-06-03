@@ -38,6 +38,109 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = false;
 #endif
 
+struct Vertex
+{
+    glm::vec2 pos;
+    glm::vec3 color;
+    glm::vec2 uv;
+    uint32_t materialIndex;
+    static VkVertexInputBindingDescription getBindingDescription()
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, uv);
+
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32_UINT;
+        attributeDescriptions[3].offset = offsetof(Vertex, materialIndex);
+
+        return attributeDescriptions;
+    }
+};
+
+struct alignas(16) MaterialUBO
+{
+    glm::vec4 color;    // 16字节
+    glm::vec2 pos;      // 8字节
+    glm::vec2 size;     // 8字节
+    float borderRadius; // 4字节
+    float padding[3];   // 补齐到16字节对齐，填充3个float
+};
+
+struct VKObject
+{
+    VkBuffer vBuffer;
+    VkDeviceMemory vMemory;
+    VkBuffer iBuffer;
+    VkDeviceMemory iMemory;
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformMemory;
+    std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
+    MaterialUBO material;
+    int id;
+
+    void Destroy(VkDevice device)
+    {
+        vkDestroyBuffer(device, iBuffer, nullptr);
+        vkDestroyBuffer(device, vBuffer, nullptr);
+        vkFreeMemory(device, iMemory, nullptr);
+        vkFreeMemory(device, vMemory, nullptr);
+    }
+    void Init(VkDevice device)
+    {
+    }
+    void UpdateData(VkDevice device)
+    {
+        // void *data;
+        // VkResult result = vkMapMemory(device, uniformMemory, 0, sizeof(MaterialUBO), 0, &data);
+        // memcpy(data, &material, sizeof(MaterialUBO));
+        // vkUnmapMemory(device, uniformMemory);
+
+        // VkDescriptorBufferInfo bufferInfo{};
+        // bufferInfo.buffer = uniformBuffer;
+        // bufferInfo.offset = 0;
+        // bufferInfo.range = sizeof(MaterialUBO);
+
+        // VkWriteDescriptorSet descriptorWrite{};
+        // descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        // descriptorWrite.dstSet = descriptorSet;
+        // descriptorWrite.dstBinding = 0;
+        // descriptorWrite.dstArrayElement = 0;
+        // descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        // descriptorWrite.descriptorCount = 1;
+        // descriptorWrite.pBufferInfo = &bufferInfo;
+
+        // vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
+};
+
+std::vector<VKObject> vkObject;
+
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -78,77 +181,163 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Buffer
-{
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-};
-
-struct Vertex
-{
-    glm::vec2 pos;
-    glm::vec3 color;
-    glm::vec2 uv;
-
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
-    {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        return attributeDescriptions;
-    }
-};
-
-std::vector<Vertex> vertices = {
-    {{-1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-    {{1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}},
-    {{1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
-
-std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0};
 class HelloTriangleApplication
 {
 public:
     void run()
     {
         initWindow();
+
         initVulkan();
         OnStart();
 
         mainLoop();
         cleanup();
     }
-    void ReRender()
+
+    void InitSomething()
     {
-        recreateVertexAndIndexBuffers(vertices, indices);
+        VkDescriptorSetLayoutBinding storageLayoutBinding{};
+        storageLayoutBinding.binding = 0;
+        storageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; // 改成 Storage Buffer
+        storageLayoutBinding.descriptorCount = 1;
+        storageLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        storageLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &storageLayoutBinding;
+
+        vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout);
+
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; // 也改成Storage Buffer
+        poolSize.descriptorCount = 1;                      // 这里是绑定数，1个大buffer
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = 1; // 只需要一个Descriptor Set
+
+        vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool);
+
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &descriptorSetLayout;
+
+        vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet);
     }
-    void UpdateRender()
+
+    void DestroyObject(VKObject object)
     {
-        updateVertexAndIndexBuffers(vertices, indices);
+        object.Destroy(device);
+    }
+
+    void AddObject(VKObject object)
+    {
+        VkDeviceSize vBufferSize = object.vertices.size() * sizeof(Vertex);
+        VkDeviceSize iBufferSize = object.indices.size() * sizeof(int);
+
+        createBuffer(vBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, object.vBuffer, object.vMemory);
+        createBuffer(iBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, object.iBuffer, object.iMemory);
+        uploadToDevice(object.vertices.data(), vBufferSize, object.vBuffer, object.vMemory);
+        uploadToDevice(object.indices.data(), iBufferSize, object.iBuffer, object.iMemory);
+        createBuffer(sizeof(MaterialUBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, object.uniformBuffer, object.uniformMemory);
+        object.Init(device);
+        object.UpdateData(device);
+
+        vkObject.push_back(object);
+
+        VkDeviceSize bufferSize = sizeof(MaterialUBO) * vkObject.size();
+        try
+        {
+            vkDestroyBuffer(device, storageBuffer, nullptr);
+            vkFreeMemory(device, storageMemory, nullptr);
+        }
+        catch (...)
+        {
+        }
+
+        createBuffer(bufferSize,
+                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     storageBuffer, storageMemory);
+
+        void *data;
+        std::vector<MaterialUBO> materials(vkObject.size());
+        for (int i = 0; i < vkObject.size(); i++)
+        {
+            materials[i] = vkObject[i].material;
+        }
+        VkResult result = vkMapMemory(device, storageMemory, 0, bufferSize, 0, &data);
+        memcpy(data, materials.data(), (size_t)bufferSize);
+        vkUnmapMemory(device, storageMemory);
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = storageBuffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = VK_WHOLE_SIZE; // 或 bufferSize
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = descriptorSet; // 你分配的描述符集
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
+    void UpdateObject(VKObject &object) // ✅ 加引用
+    {
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingMemory;
+        int size = sizeof(Vertex) * object.vertices.size();
+
+        createBuffer(size,
+                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingBuffer, stagingMemory);
+
+        void *data;
+        vkMapMemory(device, stagingMemory, 0, size, 0, &data);
+        memcpy(data, object.vertices.data(), size); // ✅ 修正
+        vkUnmapMemory(device, stagingMemory);
+
+        // ⚠️ 不再重新创建 object.vBuffer
+
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+        vkCmdCopyBuffer(commandBuffer, stagingBuffer, object.vBuffer, 1, &copyRegion);
+
+        endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingMemory, nullptr);
+
+        // object.UpdateData(device);
+
+        VkDeviceSize offset = sizeof(MaterialUBO) * object.id;
+        VkDeviceSize s = sizeof(MaterialUBO);
+
+        void *data1;
+        vkMapMemory(device, storageMemory, offset, s, 0, &data1);
+        memcpy(data1, &vkObject[object.id].material, s);
+        vkUnmapMemory(device, storageMemory);
     }
 
 private:
     GLFWwindow *window;
+
+    VkBuffer storageBuffer;
+    VkDeviceMemory storageMemory;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -185,19 +374,87 @@ private:
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
 
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorPool descriptorPool;
+    VkDescriptorSet descriptorSet;
+
     bool framebufferResized = false;
-    void createInitialVertexAndIndexBuffers(size_t initialVertexCount, size_t initialIndexCount)
+
+    VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
     {
-        VkDeviceSize initialVertexBufferSize = sizeof(Vertex) * initialVertexCount;
-        VkDeviceSize initialIndexBufferSize = sizeof(uint16_t) * initialIndexCount;
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = commandPool;
+        allocInfo.commandBufferCount = 1;
 
-        // 创建设备本地的顶点和索引缓冲区
-        // 确保这些缓冲区只创建一次，并用于整个应用程序生命周期
-        createBuffer(initialVertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
-        createBuffer(initialIndexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        return commandBuffer;
+    }
+
+    void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer)
+    {
+        vkEndCommandBuffer(commandBuffer);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue);
+
+        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    }
+
+    void DrawObject(VkCommandBuffer commandBuffer, VKObject object)
+    {
+        VkBuffer vertexBuffers[] = {object.vBuffer};
+        VkDeviceSize offset[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offset);
+
+        vkCmdBindIndexBuffer(commandBuffer, object.iBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.indices.size()), 1, 0, 0, 0);
+    }
+
+    void uploadToDevice(void *srcData, VkDeviceSize size, VkBuffer &dstBuffer, VkDeviceMemory &dstBufferMemory)
+    {
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        // 先建 staging buffer（CPU可见）
+        createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingBuffer, stagingBufferMemory);
+
+        // 拷贝数据到 staging buffer
+        void *data;
+        vkMapMemory(device, stagingBufferMemory, 0, size, 0, &data);
+        memcpy(data, srcData, (size_t)size);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        // 建真正的 GPU buffer（设备本地）
+        createBuffer(size,
+                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, // 或 INDEX_BUFFER_BIT 视需求而定
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                     dstBuffer, dstBufferMemory);
+
+        // 从 staging buffer 拷贝数据到 GPU buffer
+        copyBuffer(stagingBuffer, dstBuffer, size);
+
+        // 清理 staging buffer
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     void initWindow()
@@ -227,66 +484,16 @@ private:
         createSwapChain();
         createImageViews();
         createRenderPass();
+        InitSomething();
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
-        createVertexBuffer();
-        createIndexBuffer();
-        createInitialVertexAndIndexBuffers(10, 10);
+
+        // createVertexBuffer();
+        // createIndexBuffer();
+        // createInitialVertexAndIndexBuffers(10, 10);
         createCommandBuffers();
         createSyncObjects();
-    }
-
-    void updateVertexAndIndexBuffers(std::vector<Vertex> &vertices, std::vector<uint16_t> &indices)
-    {
-        VkDeviceSize vertexBufferSize = sizeof(Vertex) * vertices.size();
-        VkDeviceSize indexBufferSize = sizeof(uint16_t) * indices.size();
-
-        // 检查缓冲区大小是否足够
-        // 如果新数据太大，需要重新分配更大的缓冲区。
-        // 这仍然涉及销毁旧的并创建新的，但只在必要时才发生，而不是每一帧。
-        // 更好的方法是预分配一个最大尺寸的缓冲区，或者使用VMA。
-        // 暂时我们假设缓冲区总是足够大。
-        // 实际项目中，如果数据大小变化很大，需要更复杂的逻辑来管理缓冲区大小和重新分配。
-
-        // 1. 创建 staging buffers (每帧创建和销毁是OK的，因为它们是临时的)
-        VkBuffer stagingVertexBuffer;
-        VkDeviceMemory stagingVertexBufferMemory;
-        createBuffer(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     stagingVertexBuffer, stagingVertexBufferMemory);
-
-        VkBuffer stagingIndexBuffer;
-        VkDeviceMemory stagingIndexBufferMemory;
-        createBuffer(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     stagingIndexBuffer, stagingIndexBufferMemory);
-
-        // 2. 复制数据到 staging buffer
-        void *data;
-        vkMapMemory(device, stagingVertexBufferMemory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)vertexBufferSize);
-        vkUnmapMemory(device, stagingVertexBufferMemory);
-
-        vkMapMemory(device, stagingIndexBufferMemory, 0, indexBufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)indexBufferSize);
-        vkUnmapMemory(device, stagingIndexBufferMemory);
-
-        // 3. 复制 staging buffer 到 GPU buffer
-        // 假设 copyBuffer 内部提交了命令缓冲区并可能等待了，或者这是一个辅助函数，
-        // 其命令缓冲区会连同渲染命令一起提交
-        copyBuffer(stagingVertexBuffer, vertexBuffer, vertexBufferSize);
-        copyBuffer(stagingIndexBuffer, indexBuffer, indexBufferSize);
-
-        // 4. 清理 staging buffer
-        // 这一步需要同步，确保 GPU 完成了 copyBuffer 中的传输操作
-        // 最简单但效率不高的方式是在这里等待一个栅栏，但这会阻塞CPU
-        // 更高效的方式是使用一个延迟删除队列，或者确保这些 staging buffer 的销毁
-        // 发生在确定 GPU 不再使用它们之后（例如，在下一帧开始时检查前一帧的同步对象）
-        vkDestroyBuffer(device, stagingVertexBuffer, nullptr);
-        vkFreeMemory(device, stagingVertexBufferMemory, nullptr);
-        vkDestroyBuffer(device, stagingIndexBuffer, nullptr);
-        vkFreeMemory(device, stagingIndexBufferMemory, nullptr);
     }
 
     void mainLoop()
@@ -313,25 +520,6 @@ private:
         vkDeviceWaitIdle(device);
     }
 
-    void recreateVertexAndIndexBuffers(std::vector<Vertex> &vertices, std::vector<uint16_t> &indices)
-    {
-        // 销毁旧缓冲区和内存
-        vkDestroyBuffer(device, vertexBuffer, nullptr);
-        vkFreeMemory(device, vertexBufferMemory, nullptr);
-        vkDestroyBuffer(device, indexBuffer, nullptr);
-        vkFreeMemory(device, indexBufferMemory, nullptr);
-
-        VkDeviceSize vertexBufferSize = sizeof(Vertex) * vertices.size();
-        VkDeviceSize indexBufferSize = sizeof(uint16_t) * indices.size();
-
-        createBuffer(vertexBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-        createBuffer(indexBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-        updateVertexAndIndexBuffers(vertices, indices, vertexBuffer, vertexBufferMemory, indexBuffer, indexBufferMemory);
-    }
     void cleanupSwapChain()
     {
         for (auto framebuffer : swapChainFramebuffers)
@@ -820,7 +1008,8 @@ private:
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
@@ -891,48 +1080,6 @@ private:
         {
             throw std::runtime_error("failed to create graphics command pool!");
         }
-    }
-
-    void createVertexBuffer()
-    {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
-    }
-
-    void createIndexBuffer()
-    {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void *data;
-        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(device, stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory)
@@ -1085,14 +1232,18 @@ private:
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        for (const auto &obj : vkObject)
+        {
+            DrawObject(commandBuffer, obj);
+        }
 
-        VkBuffer vertexBuffers[] = {vertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        // VkBuffer vertexBuffers[] = {vertexBuffer};
+        // VkDeviceSize offsets[] = {0};
+        // vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        // vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
 
@@ -1437,54 +1588,54 @@ struct ObjectData
     std::vector<int> indexs;
 };
 
-std::vector<ObjectData> objects;
 HelloTriangleApplication app;
 void AddShape(Object object)
 {
-    ObjectData data = {};
+
+    VKObject data = {};
     float centerX = (float)(object.x) * 2 / Width;
     float centerY = (float)(object.y) * 2 / Height;
     float x = (float)(object.width) / Width;
     float y = (float)(object.height) / Height;
-    Vertex verts[] = {
-        {{centerX - x, centerY - y}, object.color, {0.0f, 0.0f}},
-        {{centerX + x, centerY - y}, object.color, {1.0f, 0.0f}},
-        {{centerX + x, centerY + y}, object.color, {1.0f, 1.0f}},
-        {{centerX - x, centerY + y}, object.color, {0.0f, 1.0f}}};
-    int startIndex = vertices.size();
-    int ind[] = {0 + startIndex, 1 + startIndex, 2 + startIndex, 2 + startIndex, 3 + startIndex, 0 + startIndex};
-    int i = indices.size();
-    data.indexs = {i, i + 3};
-    data.id = object.id;
-    objects.push_back(data);
-    vertices.insert(vertices.end(), verts, verts + 4);
-    indices.insert(indices.end(), ind, ind + 6);
+    data.vertices = {
+        {{centerX - x, centerY - y}, object.color, {0.0f, 0.0f}, (uint32_t)vkObject.size()},
+        {{centerX + x, centerY - y}, object.color, {1.0f, 0.0f}, (uint32_t)vkObject.size()},
+        {{centerX + x, centerY + y}, object.color, {1.0f, 1.0f}, (uint32_t)vkObject.size()},
+        {{centerX - x, centerY + y}, object.color, {0.0f, 1.0f}, (uint32_t)vkObject.size()}};
 
-    app.ReRender();
+    data.indices = {0, 1, 2, 2, 3, 0};
+    data.material.color = object.color;
+    data.material.borderRadius = object.borderRadius;
+    data.material.pos = glm::vec2(object.x, object.y);
+    data.material.size = glm::vec2(object.width, object.height);
+    data.id = object.id;
+    app.AddObject(data);
 }
 
 void MoveShape(Object object, int newX, int newY)
 {
     int objectIndex;
-    for (int i = 0; i < objects.size(); i++)
+    for (int i = 0; i < vkObject.size(); i++)
     {
-        if (objects[i].id == object.id)
+        if (vkObject[i].id == object.id)
         {
             objectIndex = i;
             break;
         }
     }
-    float centerX = ((float)(object.x) + newX) * 2 / Width;
-    float centerY = ((float)(object.y) + newY) * 2 / Height;
+    float centerX = ((float)(0.0) + newX) * 2 / Width;
+    float centerY = ((float)(0.0) + newY) * 2 / Height;
     float x = (float)(object.width) / Width;
     float y = (float)(object.height) / Height;
 
-    vertices[indices[objects[objectIndex].indexs[0]]].pos = {centerX - x, centerY - y};
-    vertices[indices[objects[objectIndex].indexs[0] + 1]].pos = {centerX + x, centerY - y};
-    vertices[indices[objects[objectIndex].indexs[0] + 2]].pos = {centerX + x, centerY + y};
-    vertices[indices[objects[objectIndex].indexs[0] + 4]].pos = {centerX - x, centerY + y};
+    vkObject[objectIndex].vertices[0].pos = {centerX - x, centerY - y};
+    vkObject[objectIndex].vertices[1].pos = {centerX + x, centerY - y};
+    vkObject[objectIndex].vertices[2].pos = {centerX + x, centerY + y};
+    vkObject[objectIndex].vertices[3].pos = {centerX - x, centerY + y};
 
-    app.UpdateRender();
+    vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
+
+    app.UpdateObject(vkObject[objectIndex]);
 }
 
 int main()

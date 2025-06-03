@@ -4,6 +4,6 @@
 #include <glm/glm.hpp>
 #include <enter.h>
 
-Object DrawRectangle(int width, int height, int x, int y, glm::vec3 color);
+Object DrawRectangle(int width, int height, int x, int y, glm::vec4 color, float borderRadius);
 
 #endif

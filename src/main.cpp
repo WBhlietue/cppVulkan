@@ -14,15 +14,15 @@ float a = 0;
 float b = 0;
 bool forward = true;
 
-float centerX = -100;
-float centerY = 200;
+float centerX = -200;
+float centerY = 50;
 float radius = 100;
 
 void OnStart()
 {
-    obj = DrawRectangle(200, 100, 0, 0, glm::vec3(1.0f, 0.0f, 1.0f));
-    obj2 = DrawRectangle(100, 100, -100, -100, glm::vec3(0.0f, 0.0f, 1.0f));
-    obj3 = DrawRectangle(100, 100, 0, 0, glm::vec3(0.0f, 1.0f, 0.0f));
+    obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 10);
+    obj3 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
+    obj = DrawRectangle(400, 200, 0, 0, glm::vec4(1.0f, 0.0f, 1.0f, 0.5f), 30);
     MoveShape(obj, 100, 100);
 }
 
@@ -53,5 +53,4 @@ void OnUpdate(float deltaTime)
     }
     MoveShape(obj2, centerX + radius * cos(a * 2 * PI), centerY + radius * sin(a * 2 * PI));
     MoveShape(obj3, 300 * b, -200);
-    // MoveShape(obj, 100, -100 + a * 200);
 }

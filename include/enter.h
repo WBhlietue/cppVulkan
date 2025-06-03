@@ -8,7 +8,8 @@ struct Object
     int height;
     int x;
     int y;
-    glm::vec3 color;
+    float borderRadius;
+    glm::vec4 color;
 };
 
 void AddShape(Object object);

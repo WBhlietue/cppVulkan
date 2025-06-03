@@ -1,10 +1,5 @@
 {
   "name": "test",
   "version-string": "0.1.0",
-  "dependencies": [
-    "nlohmann-json",
-    "vulkan",
-    "glfw3",
-    "glm"
-  ]
+  "dependencies": ["nlohmann-json", "vulkan", "glfw3", "glm"]
 }
