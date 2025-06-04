@@ -38,39 +38,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = false;
 #endif
 
-struct Object_OnClick
-{
-    int id;
-    std::function<void()> callback;
-    void Check(double x, double y);
-};
-struct Object_OnMouseEnter
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseLeave
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseStay
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-
-std::vector<Object_OnClick> onClickCallbacks;
-std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
-std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
-std::vector<Object_OnMouseStay> onMouseStayCallbacks;
-
 struct Vertex
 {
     glm::vec2 pos;
@@ -144,26 +111,9 @@ struct VKObject
         vkFreeMemory(device, iMemory, nullptr);
         vkFreeMemory(device, vMemory, nullptr);
     }
-
-    void AddOnClick(std::function<void()> onClick)
-    {
-        Object_OnClick objOnClick = {};
-        objOnClick.id = id;
-        objOnClick.callback = onClick;
-        onClickCallbacks.push_back(objOnClick);
-    }
 };
 
 std::vector<VKObject> vkObject;
-
-void Object_OnClick::Check(double x, double y)
-{
-    MaterialUBO material = vkObject[id].material;
-    if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
-    {
-        callback();
-    }
-}
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
@@ -397,8 +347,16 @@ private:
 
     bool framebufferResized = false;
 
-    double mousePositionX = 0.0;
-    double mousePositionY = 0.0;
+    VkImage pickingImage;
+    VkDeviceMemory pickingImageMemory;
+    VkImageView pickingImageView;
+    VkFramebuffer pickingFramebuffer;
+    VkRenderPass pickingRenderPass;
+    VkPipelineLayout pickingPipelineLayout;
+    VkPipeline pickingGraphicsPipeline;
+
+    // To store the picked object ID
+    uint32_t pickedObjectId = -1;
 
     VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
     {
@@ -467,6 +425,11 @@ private:
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
+    void onMouseClick(int x, int y)
+    {
+        std::cout << "Clicked at: (" << x << ", " << y << "), id = " << pickedObjectId << std::endl;
+    }
+
     void initWindow()
     {
         glfwInit();
@@ -476,30 +439,94 @@ private:
         window = glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    }
-    static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        {
-
-            app->OnClick();
-        }
-    }
-
-    void OnClick()
-    {
-        for (auto &obj : onClickCallbacks)
-        {
-            obj.Check(mousePositionX, mousePositionY);
-        }
+        glfwSetMouseButtonCallback(window, mouseButtonCallback); // New: Mouse button callback
     }
 
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
     {
         auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
+    }
+    void readPickedPixel()
+    {
+        // Create a buffer to read the pixel data
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        VkDeviceSize bufferSize = sizeof(uint32_t); // One uint for the ID
+
+        createBuffer(bufferSize,
+                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingBuffer, stagingBufferMemory);
+
+        // Copy image to buffer
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+        // Ensure the picking image is in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        transitionImageLayout(commandBuffer, pickingImage, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {(int)glfwMouseX, (int)glfwMouseY, 0}; // Use stored mouse coordinates
+        region.imageExtent = {1, 1, 1};                             // Read only 1x1 pixel
+
+        vkCmdCopyImageToBuffer(
+            commandBuffer,
+            pickingImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            stagingBuffer,
+            1, &region);
+
+        // Transition back the picking image to COLOR_ATTACHMENT_OPTIMAL for next frame
+        transitionImageLayout(commandBuffer, pickingImage, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+        endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
+
+        // Map memory and read the pixel
+        void *data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        pickedObjectId = *reinterpret_cast<uint32_t *>(data);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        // Clean up staging buffer
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+        // std::cout << "Picked Object ID: " << pickedObjectId << std::endl;
+        // You can now use pickedObjectId to perform actions
+        // if (pickedObjectId != 0)
+        // { // Assuming 0 is the clear color/background ID
+        //     // Find the object with this ID and do something
+        //     for (auto &obj : vkObject)
+        //     {
+        //         if (obj.id == pickedObjectId)
+        //         {
+        //             obj.material.color = glm::vec4(1.0f - obj.material.color.r, 1.0f - obj.material.color.g, 1.0f - obj.material.color.b, obj.material.color.a); // Example: invert color
+        //             UpdateObject(obj);                                                                                                                           // Update the object's uniform buffer
+        //             break;
+        //         }
+        //     }
+        // }
+    }
+
+    // Store mouse coordinates
+    double glfwMouseX = 0.0;
+    double glfwMouseY = 0.0;
+
+    // Modify mouseButtonCallback to store coordinates
+    static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
+    {
+        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        {
+            glfwGetCursorPos(window, &app->glfwMouseX, &app->glfwMouseY);
+            app->onMouseClick(static_cast<int>(app->glfwMouseX), static_cast<int>(app->glfwMouseY));
+        }
     }
 
     void initVulkan()
@@ -514,10 +541,250 @@ private:
         createRenderPass();
         InitSomething();
         createGraphicsPipeline();
+        createColorPickingObjects();
         createFramebuffers();
         createCommandPool();
         createCommandBuffers();
         createSyncObjects();
+    }
+    void createColorPickingObjects()
+    {
+        // 1. Create a render pass for color picking
+        VkAttachmentDescription attachmentDescription{};
+        attachmentDescription.format = VK_FORMAT_R32_UINT; // Each pixel stores a single uint ID
+        attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; // Ready for transfer to CPU
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+
+        VkSubpassDependency dependency{};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &attachmentDescription;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &pickingRenderPass) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking render pass!");
+        }
+
+        // 2. Create the picking image, memory, and image view
+        createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32_UINT,
+                    VK_IMAGE_TILING_OPTIMAL,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    pickingImage, pickingImageMemory);
+
+        pickingImageView = createImageView(pickingImage, VK_FORMAT_R32_UINT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        // 3. Create the picking framebuffer
+        VkImageView attachments[] = {pickingImageView};
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = pickingRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChainExtent.width;
+        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &pickingFramebuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking framebuffer!");
+        }
+
+        // 4. Create the picking graphics pipeline
+        auto vertShaderCode = readFile("shader/pick_vert.spv");
+        auto fragShaderCode = readFile("shader/pick_frag.spv");
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions(); // Use updated attribute descriptions
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE; // No blending for picking
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+
+        std::vector<VkDynamicState> dynamicStates = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 0; // No descriptor sets for picking, direct ID output
+        pipelineLayoutInfo.pSetLayouts = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+        if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pickingPipelineLayout) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking pipeline layout!");
+        }
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pickingPipelineLayout;
+        pipelineInfo.renderPass = pickingRenderPass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pickingGraphicsPipeline) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking graphics pipeline!");
+        }
+
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    }
+
+    // Helper function to create image and image view (you might already have these)
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
+    {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = width;
+        imageInfo.extent.height = height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = format;
+        imageInfo.tiling = tiling;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create image!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(device, image, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate image memory!");
+        }
+
+        vkBindImageMemory(device, image, imageMemory, 0);
+    }
+
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+    {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.subresourceRange.aspectMask = aspectFlags;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        VkImageView imageView;
+        if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create image view!");
+        }
+        return imageView;
     }
 
     void mainLoop()
@@ -526,13 +793,12 @@ private:
         const float targetFrameTime = 1.0f / 60.0f; // 60 FPS
         while (!glfwWindowShouldClose(window))
         {
+
             auto currentTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             glfwPollEvents();
-            glfwGetCursorPos(window, &mousePositionX, &mousePositionY);
-            mousePositionX -= Width / 2;
-            mousePositionY -= Height / 2;
+
             drawFrame();
             OnUpdate(deltaTime.count());
             // auto endTime = std::chrono::high_resolution_clock::now();
@@ -1287,6 +1553,174 @@ private:
         }
     }
 
+    void recordPickingCommandBuffer()
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = commandPool;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer pickingCmdBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &pickingCmdBuffer);
+
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(pickingCmdBuffer, &beginInfo);
+
+        // Transition image to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        transitionImageLayout(pickingCmdBuffer, pickingImage, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = pickingRenderPass;
+        renderPassInfo.framebuffer = pickingFramebuffer;
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 0.0f}}}; // Clear to 0 for no object picked
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(pickingCmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(pickingCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pickingGraphicsPipeline);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)swapChainExtent.width;
+        viewport.height = (float)swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(pickingCmdBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChainExtent;
+        vkCmdSetScissor(pickingCmdBuffer, 0, 1, &scissor);
+
+        for (const auto &obj : vkObject)
+        {
+            VkBuffer vertexBuffers[] = {obj.vBuffer};
+            VkDeviceSize offset[] = {0};
+            vkCmdBindVertexBuffers(pickingCmdBuffer, 0, 1, vertexBuffers, offset);
+            vkCmdBindIndexBuffer(pickingCmdBuffer, obj.iBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(pickingCmdBuffer, static_cast<uint32_t>(obj.indices.size()), 1, 0, 0, 0);
+        }
+
+        vkCmdEndRenderPass(pickingCmdBuffer);
+
+        // Transition image to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        transitionImageLayout(pickingCmdBuffer, pickingImage, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+        vkEndCommandBuffer(pickingCmdBuffer);
+
+        // Store the command buffer for submission
+        pickingCommandBuffer = pickingCmdBuffer;
+    }
+
+    void submitPickingCommandBuffer()
+    {
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &pickingCommandBuffer;
+
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        VkFence pickingFence;
+        if (vkCreateFence(device, &fenceInfo, nullptr, &pickingFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking fence!");
+        }
+
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, pickingFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to submit picking command buffer!");
+        }
+
+        vkWaitForFences(device, 1, &pickingFence, VK_TRUE, UINT64_MAX);
+        vkDestroyFence(device, pickingFence, nullptr);
+        vkFreeCommandBuffers(device, commandPool, 1, &pickingCommandBuffer); // Free after use
+
+        // Now read back the pixel
+        readPickedPixel();
+    }
+
+    // Helper variable for picking command buffer
+    VkCommandBuffer pickingCommandBuffer;
+
+    // Helper for image layout transitions (add this to your class)
+    void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+    {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags destinationStage;
+
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        // 新增的转换规则
+        else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+        else
+        {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            sourceStage, destinationStage,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier);
+    }
+
     void drawFrame()
     {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1302,6 +1736,8 @@ private:
         {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
+        recordPickingCommandBuffer(); // New function to render picking IDs
+        submitPickingCommandBuffer();
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
@@ -1646,17 +2082,6 @@ void MoveShape(Object object, int newX, int newY)
     vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
 
     app.UpdateObject(vkObject[objectIndex]);
-}
-void VKAddOnClick(Object object, std::function<void()> onClick)
-{
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            vkObject[i].AddOnClick(onClick);
-            break;
-        }
-    }
 }
 
 int main()

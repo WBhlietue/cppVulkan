@@ -18,6 +18,8 @@
 #include <chrono>
 #include <thread>
 
+#include <functional>
+
 #include <main.h>
 #include <enter.h>
 
@@ -37,39 +39,6 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = false;
 #endif
-
-struct Object_OnClick
-{
-    int id;
-    std::function<void()> callback;
-    void Check(double x, double y);
-};
-struct Object_OnMouseEnter
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseLeave
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseStay
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-
-std::vector<Object_OnClick> onClickCallbacks;
-std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
-std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
-std::vector<Object_OnMouseStay> onMouseStayCallbacks;
 
 struct Vertex
 {
@@ -115,6 +84,39 @@ struct Vertex
     }
 };
 
+std::vector<VKObject> vkObject;
+
+// struct Object_OnClick
+// {
+//     int id;
+//     std::function<void()> callback;
+
+//     void Check(int x, int y);
+// };
+// struct Object_OnMouseEnter
+// {
+//     int id;
+//     std::function<void()> callback;
+//     bool isIn = false;
+// };
+// struct Object_OnMouseLeave
+// {
+//     int id;
+//     std::function<void()> callback;
+//     bool isIn = false;
+// };
+// struct Object_OnMouseStay
+// {
+//     int id;
+//     std::function<void()> callback;
+//     bool isIn = false;
+// };
+
+// std::vector<Object_OnClick> onClickCallbacks;
+// std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
+// std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
+// std::vector<Object_OnMouseStay> onMouseStayCallbacks;
+
 struct alignas(16) MaterialUBO
 {
     glm::vec4 color;
@@ -144,19 +146,16 @@ struct VKObject
         vkFreeMemory(device, iMemory, nullptr);
         vkFreeMemory(device, vMemory, nullptr);
     }
-
-    void AddOnClick(std::function<void()> onClick)
-    {
-        Object_OnClick objOnClick = {};
-        objOnClick.id = id;
-        objOnClick.callback = onClick;
-        onClickCallbacks.push_back(objOnClick);
-    }
+    // void AddOnclick(std::function<void()> onClick)
+    // {
+        // Object_OnClick *objOnClick = {};
+        // objOnClick->id = id;
+        // objOnClick->callback = onClick;
+        // onClickCallbacks.push_back(*objOnClick);
+    // }
 };
 
-std::vector<VKObject> vkObject;
-
-void Object_OnClick::Check(double x, double y)
+void Object_OnClick::Check(int x, int y)
 {
     MaterialUBO material = vkObject[id].material;
     if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
@@ -164,6 +163,8 @@ void Object_OnClick::Check(double x, double y)
         callback();
     }
 }
+
+
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
@@ -397,9 +398,6 @@ private:
 
     bool framebufferResized = false;
 
-    double mousePositionX = 0.0;
-    double mousePositionY = 0.0;
-
     VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
     {
         VkCommandBufferAllocateInfo allocInfo{};
@@ -476,24 +474,6 @@ private:
         window = glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    }
-    static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        {
-
-            app->OnClick();
-        }
-    }
-
-    void OnClick()
-    {
-        for (auto &obj : onClickCallbacks)
-        {
-            obj.Check(mousePositionX, mousePositionY);
-        }
     }
 
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -530,9 +510,6 @@ private:
             std::chrono::duration<float> deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             glfwPollEvents();
-            glfwGetCursorPos(window, &mousePositionX, &mousePositionY);
-            mousePositionX -= Width / 2;
-            mousePositionY -= Height / 2;
             drawFrame();
             OnUpdate(deltaTime.count());
             // auto endTime = std::chrono::high_resolution_clock::now();
@@ -1646,17 +1623,6 @@ void MoveShape(Object object, int newX, int newY)
     vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
 
     app.UpdateObject(vkObject[objectIndex]);
-}
-void VKAddOnClick(Object object, std::function<void()> onClick)
-{
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            vkObject[i].AddOnClick(onClick);
-            break;
-        }
-    }
 }
 
 int main()

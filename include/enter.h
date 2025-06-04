@@ -1,5 +1,6 @@
 #ifndef enter_h
 #define enter_h
+#include <functional>
 
 struct Object
 {
@@ -14,5 +15,6 @@ struct Object
 
 void AddShape(Object object);
 void MoveShape(Object object, int newX, int newY);
+void VKAddOnClick(Object object, std::function<void()> onClick);
 
 #endif

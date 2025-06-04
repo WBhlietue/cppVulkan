@@ -18,26 +18,69 @@ float centerX = -200;
 float centerY = 50;
 float radius = 100;
 
+bool isMoving = false;
+bool isTestForward = true;
+float test = 0;
+
+bool shape2Move = true;
+
 void OnStart()
 {
     obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 10);
     obj3 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
     obj = DrawRectangle(400, 200, 0, 0, glm::vec4(1.0f, 0.0f, 1.0f, 0.5f), 30);
-    MoveShape(obj, 100, 100);
+    MoveShape(obj, 100, -40);
+    AddOnClick(obj, []()
+               {if(!isMoving){
+                        isMoving = true;
+                    } });
+    AddOnClick(obj2, []()
+               { shape2Move = !shape2Move; });
+
+    AddOnClick(obj3, []()
+               {
+        b = -1;
+        forward = true; });
 }
 
 void OnUpdate(float deltaTime)
 {
     // std::cout << "frame rate: " << 1 / deltaTime << std::endl;
 
-    a += deltaTime;
-    if (a >= 1)
+    if (isMoving)
     {
-        a -= 1;
+        if (isTestForward)
+        {
+            test += deltaTime * 2;
+            if (test >= 1)
+            {
+                isMoving = false;
+                isTestForward = false;
+            }
+        }
+        else
+        {
+            test -= deltaTime * 2;
+            if (test <= 0)
+            {
+                isMoving = false;
+                isTestForward = true;
+            }
+        }
+        MoveShape(obj, 100, -40 + 200 * test * test);
+    }
+    if (shape2Move)
+    {
+        a += deltaTime;
+        if (a >= 1)
+        {
+            a -= 1;
+        }
+        MoveShape(obj2, centerX + radius * cos(a * 2 * PI), centerY + radius * sin(a * 2 * PI));
     }
     if (forward)
     {
-        b += deltaTime * 3;
+        b += deltaTime * 2;
         if (b >= 1)
         {
             forward = false;
@@ -45,12 +88,12 @@ void OnUpdate(float deltaTime)
     }
     else
     {
-        b -= deltaTime * 3;
+        b -= deltaTime * 2;
         if (b <= -1)
         {
             forward = true;
         }
     }
-    MoveShape(obj2, centerX + radius * cos(a * 2 * PI), centerY + radius * sin(a * 2 * PI));
+
     MoveShape(obj3, 300 * b, -200);
 }

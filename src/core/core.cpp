@@ -15,3 +15,7 @@ Object DrawRectangle(int width, int height, int x, int y, glm::vec4 color, float
     AddShape(object);
     return object;
 }
+void AddOnClick(Object object, std::function<void()> onClick)
+{
+    VKAddOnClick(object, onClick);
+}

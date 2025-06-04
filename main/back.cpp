@@ -38,39 +38,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = false;
 #endif
 
-struct Object_OnClick
-{
-    int id;
-    std::function<void()> callback;
-    void Check(double x, double y);
-};
-struct Object_OnMouseEnter
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseLeave
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-struct Object_OnMouseStay
-{
-    int id;
-    std::function<void()> callback;
-    bool isIn = false;
-    void Check(double x, double y);
-};
-
-std::vector<Object_OnClick> onClickCallbacks;
-std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
-std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
-std::vector<Object_OnMouseStay> onMouseStayCallbacks;
-
 struct Vertex
 {
     glm::vec2 pos;
@@ -144,26 +111,9 @@ struct VKObject
         vkFreeMemory(device, iMemory, nullptr);
         vkFreeMemory(device, vMemory, nullptr);
     }
-
-    void AddOnClick(std::function<void()> onClick)
-    {
-        Object_OnClick objOnClick = {};
-        objOnClick.id = id;
-        objOnClick.callback = onClick;
-        onClickCallbacks.push_back(objOnClick);
-    }
 };
 
 std::vector<VKObject> vkObject;
-
-void Object_OnClick::Check(double x, double y)
-{
-    MaterialUBO material = vkObject[id].material;
-    if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
-    {
-        callback();
-    }
-}
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
@@ -214,7 +164,7 @@ public:
 
         initVulkan();
         OnStart();
-
+        std::cout << "test: " << test << std::endl;
         mainLoop();
         cleanup();
     }
@@ -314,6 +264,7 @@ public:
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
     void UpdateObject(VKObject &object)
+
     {
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingMemory;
@@ -350,6 +301,100 @@ public:
         vkUnmapMemory(device, storageMemory);
     }
 
+    uint32_t GetID(uint32_t mouseX, uint32_t mouseY)
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pickingCommandPool; // 你已有的命令池
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        // 2. 开始录制命令
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        // 3. 转换pickingImage布局到TRANSFER_SRC_OPTIMAL (根据你代码实际写法)
+        VkImageMemoryBarrier barrierToTransferSrc{};
+        barrierToTransferSrc.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrierToTransferSrc.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // 假设结束时是这个布局
+        barrierToTransferSrc.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrierToTransferSrc.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrierToTransferSrc.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrierToTransferSrc.image = pickingImage;
+        barrierToTransferSrc.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrierToTransferSrc.subresourceRange.baseMipLevel = 0;
+        barrierToTransferSrc.subresourceRange.levelCount = 1;
+        barrierToTransferSrc.subresourceRange.baseArrayLayer = 0;
+        barrierToTransferSrc.subresourceRange.layerCount = 1;
+        barrierToTransferSrc.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrierToTransferSrc.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrierToTransferSrc);
+
+        // // 4. 拷贝像素
+        RecordPickingFrame(mouseX, mouseY, commandBuffer);
+
+        // 5. 转换pickingImage回COLOR_ATTACHMENT_OPTIMAL，方便下一帧继续渲染
+        VkImageMemoryBarrier barrierToColorAttachment{};
+        barrierToColorAttachment.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrierToColorAttachment.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrierToColorAttachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrierToColorAttachment.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrierToColorAttachment.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrierToColorAttachment.image = pickingImage;
+        barrierToColorAttachment.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrierToColorAttachment.subresourceRange.baseMipLevel = 0;
+        barrierToColorAttachment.subresourceRange.levelCount = 1;
+        barrierToColorAttachment.subresourceRange.baseArrayLayer = 0;
+        barrierToColorAttachment.subresourceRange.layerCount = 1;
+        barrierToColorAttachment.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrierToColorAttachment.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrierToColorAttachment);
+
+        // 6. 结束录制
+        vkEndCommandBuffer(commandBuffer);
+
+        // 7. 提交命令
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkResetFences(device, 1, &pickingFence);
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, pickingFence);
+
+        // 8. 等待完成
+        vkWaitForFences(device, 1, &pickingFence, VK_TRUE, UINT64_MAX);
+
+        // 9. 读取结果
+        uint32_t pickedID = ReadPickedID();
+
+        // 10. 释放命令缓冲
+        vkFreeCommandBuffers(device, pickingCommandPool, 1, &commandBuffer);
+
+        return pickedID;
+    }
+
 private:
     GLFWwindow *window;
 
@@ -368,14 +413,20 @@ private:
 
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
+    VkImage pickingImage;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
+    VkImageView pickingImageView;
     std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkFramebuffer pickingFramebuffer;
 
     VkRenderPass renderPass;
+    VkRenderPass pickingRenderPass;
     VkPipelineLayout pipelineLayout;
+    VkPipelineLayout pickingPipelineLayout;
     VkPipeline graphicsPipeline;
+    VkPipeline pickingGraphicsPipeline;
 
     VkCommandPool commandPool;
 
@@ -394,11 +445,10 @@ private:
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
-
+    VkBuffer pickingReadBuffer;
+    VkDeviceMemory pickingReadBufferMemory;
+    VkFence pickingFence;
     bool framebufferResized = false;
-
-    double mousePositionX = 0.0;
-    double mousePositionY = 0.0;
 
     VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
     {
@@ -476,24 +526,6 @@ private:
         window = glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    }
-    static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<HelloTriangleApplication *>(glfwGetWindowUserPointer(window));
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        {
-
-            app->OnClick();
-        }
-    }
-
-    void OnClick()
-    {
-        for (auto &obj : onClickCallbacks)
-        {
-            obj.Check(mousePositionX, mousePositionY);
-        }
     }
 
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
@@ -515,9 +547,114 @@ private:
         InitSomething();
         createGraphicsPipeline();
         createFramebuffers();
+
+        createPickingImageView();
+        createPickingRenderPass();
+        createPickingGraphicsPipeline();
+        createPickingFramebuffer();
+
         createCommandPool();
         createCommandBuffers();
+        createPickingCommandPool();
+        createPickingCommandBuffer();
+
+        createPickingReadBuffer();
+        createPickingFence();
         createSyncObjects();
+    }
+    uint32_t ReadPickedID()
+    {
+        void *data;
+        vkMapMemory(device, pickingReadBufferMemory, 0, sizeof(uint32_t), 0, &data);
+        uint32_t id = *reinterpret_cast<uint32_t *>(data);
+        vkUnmapMemory(device, pickingReadBufferMemory);
+        return id;
+    }
+
+    void createPickingReadBuffer()
+    {
+        VkDeviceSize bufferSize = 4; // 4字节存一个像素的RGBA或uint32_t ID
+
+        createBuffer(bufferSize,
+                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     pickingReadBuffer, pickingReadBufferMemory);
+    }
+
+    void createPickingFence()
+    {
+        VkFenceCreateInfo fenceInfo{};
+        fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceInfo.flags = 0;
+        if (vkCreateFence(device, &fenceInfo, nullptr, &pickingFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create fence!");
+        }
+    }
+    void RecordPickingRenderPass(VkCommandBuffer commandBuffer)
+    {
+        // 1. 开始 render pass 到 pickingFramebuffer
+        VkClearValue clearValue{};
+        clearValue.color.uint32[0] = 0; // 没点中返回 0，默认清空为0
+
+        VkRenderPassBeginInfo pickingRenderPassBeginInfo{};
+        pickingRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        pickingRenderPassBeginInfo.renderPass = pickingRenderPass;
+        pickingRenderPassBeginInfo.framebuffer = pickingFramebuffer;
+        pickingRenderPassBeginInfo.renderArea.offset = {0, 0};
+        pickingRenderPassBeginInfo.renderArea.extent = swapChainExtent;
+        pickingRenderPassBeginInfo.clearValueCount = 1;
+        pickingRenderPassBeginInfo.pClearValues = &clearValue;
+
+        vkCmdBeginRenderPass(commandBuffer, &pickingRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        // 2. 绑定 picking 管线
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pickingGraphicsPipeline);
+
+        // 3. 遍历绘制每个物体，传入唯一 materialIndex（或 ID）
+        for (size_t i = 0; i < vkObject.size(); ++i)
+        {
+            // 假设每个 object 有自己的 ID index
+            uint32_t objectID = static_cast<uint32_t>(i + 1); // ID 不能为0
+
+            // 假设是 push constant 或 UBO 设置 ID（也可能是顶点属性）
+            vkCmdPushConstants(commandBuffer, pickingPipelineLayout,
+                               VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &objectID);
+
+            // 绑定 mesh 数据
+            VkBuffer vertexBuffers[] = {vkObject[i].vBuffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, vkObject[i].iBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // 绘制
+            vkCmdDrawIndexed(commandBuffer, vkObject[i].indices.size(), 1, 0, 0, 0);
+        }
+
+        // 4. 结束 render pass
+        vkCmdEndRenderPass(commandBuffer);
+    }
+
+    void RecordPickingFrame(uint32_t x, uint32_t y, VkCommandBuffer commandBuffer)
+    {
+        VkImageSubresourceLayers subResource{};
+        subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subResource.mipLevel = 0;
+        subResource.baseArrayLayer = 0;
+        subResource.layerCount = 1;
+
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource = subResource;
+        region.imageOffset = {static_cast<int32_t>(x), static_cast<int32_t>(y), 0};
+        region.imageExtent = {1, 1, 1};
+        RecordPickingRenderPass(commandBuffer);
+
+        vkCmdCopyImageToBuffer(commandBuffer, pickingImage,
+                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               pickingReadBuffer, 1, &region);
     }
 
     void mainLoop()
@@ -526,13 +663,11 @@ private:
         const float targetFrameTime = 1.0f / 60.0f; // 60 FPS
         while (!glfwWindowShouldClose(window))
         {
+            glfwGetCursorPos(window, &glfwMouseX, &glfwMouseY);
             auto currentTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             glfwPollEvents();
-            glfwGetCursorPos(window, &mousePositionX, &mousePositionY);
-            mousePositionX -= Width / 2;
-            mousePositionY -= Height / 2;
             drawFrame();
             OnUpdate(deltaTime.count());
             // auto endTime = std::chrono::high_resolution_clock::now();
@@ -1090,6 +1225,243 @@ private:
         }
     }
 
+    void createPickingImage()
+    {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = swapChainExtent.width; // 跟交换链大小一致
+        imageInfo.extent.height = swapChainExtent.height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = VK_FORMAT_R8G8B8A8_UINT; // 整数格式，存ID用
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateImage(device, &imageInfo, nullptr, &pickingImage) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking image!");
+        }
+    }
+
+    void createPickingImageView()
+    {
+        createPickingImage();
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = pickingImage; // 离屏拾取用图像
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = VK_FORMAT_R8G8B8A8_UNORM; // 和 pickingImage 格式对应
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(device, &createInfo, nullptr, &pickingImageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking image view!");
+        }
+    }
+
+    void createPickingRenderPass()
+    {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM; // 和 picking image 格式对应
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // 要读取颜色
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_GENERAL; // 不用 PRESENT
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+
+        VkSubpassDependency dependency{};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
+        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &pickingRenderPass) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking render pass!");
+        }
+    }
+    void createPickingFramebuffer()
+    {
+        VkImageView attachments[] = {
+            pickingImageView};
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = pickingRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChainExtent.width; // 通常和swapchain一致，或者自定义尺寸
+        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &pickingFramebuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking framebuffer!");
+        }
+    }
+
+    void createPickingGraphicsPipeline()
+    {
+        // 读shader二进制代码，顶点和片段
+        auto vertShaderCode = readFile("shader/pick_vert.spv");
+        auto fragShaderCode = readFile("shader/pick_frag.spv"); // 输出物体ID颜色的片段着色器
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+        // 顶点着色器阶段信息
+        VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        vertShaderStageInfo.module = vertShaderModule;
+        vertShaderStageInfo.pName = "main";
+
+        // 片段着色器阶段信息
+        VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragShaderStageInfo.module = fragShaderModule;
+        fragShaderStageInfo.pName = "main";
+
+        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+        // 顶点输入信息（和主渲染一样）
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        auto bindingDescription = Vertex::getBindingDescription();
+        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+        // 输入装配状态
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+        // 视口和裁剪（动态设置）
+        VkPipelineViewportStateCreateInfo viewportState{};
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+
+        // 光栅化设置
+        VkPipelineRasterizationStateCreateInfo rasterizer{};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        // 多重采样
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        // 颜色混合，禁用混合，因为拾取渲染需要准确颜色值
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment.blendEnable = VK_FALSE; // 关闭混合
+
+        VkPipelineColorBlendStateCreateInfo colorBlending{};
+        colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlending.logicOpEnable = VK_FALSE;
+        colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        colorBlending.attachmentCount = 1;
+        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.blendConstants[0] = 0.0f;
+        colorBlending.blendConstants[1] = 0.0f;
+        colorBlending.blendConstants[2] = 0.0f;
+        colorBlending.blendConstants[3] = 0.0f;
+
+        // 动态状态（viewport和scissor）
+        std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+        dynamicState.pDynamicStates = dynamicStates.data();
+
+        // 管线布局，通常可以共用或者专门新建
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 1;
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout; // 复用你已有的描述符布局
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+        if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pickingPipelineLayout) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking pipeline layout!");
+        }
+
+        // 创建图形流水线
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pickingPipelineLayout;
+        pipelineInfo.renderPass = pickingRenderPass; // 这里用拾取专用的 renderPass
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pickingGraphicsPipeline) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking graphics pipeline!");
+        }
+
+        // 销毁shader模块，释放资源
+        vkDestroyShaderModule(device, fragShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    }
+
     void createCommandPool()
     {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
@@ -1209,6 +1581,38 @@ private:
         if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
+
+    VkCommandPool pickingCommandPool;
+    VkCommandBuffer pickingCommandBuffer;
+
+    void createPickingCommandPool()
+    {
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &pickingCommandPool) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create picking command pool!");
+        }
+    }
+
+    void createPickingCommandBuffer()
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = pickingCommandPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1; // 拾取只需要一个命令缓冲
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, &pickingCommandBuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate picking command buffer!");
         }
     }
 
@@ -1646,17 +2050,6 @@ void MoveShape(Object object, int newX, int newY)
     vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
 
     app.UpdateObject(vkObject[objectIndex]);
-}
-void VKAddOnClick(Object object, std::function<void()> onClick)
-{
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            vkObject[i].AddOnClick(onClick);
-            break;
-        }
-    }
 }
 
 int main()
