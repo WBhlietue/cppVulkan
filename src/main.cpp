@@ -27,8 +27,8 @@ bool shape2Move = true;
 void OnStart()
 {
     obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 10);
-    obj3 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
-    obj = DrawRectangle(400, 200, 0, 0, glm::vec4(1.0f, 0.0f, 1.0f, 0.5f), 30);
+    obj3 = DrawRectangle(100, 100, 100, 200, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
+    obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 0.0f, 1.0f, 0.5f), 30);
     MoveShape(obj, 100, -40);
     AddOnClick(obj, []()
                {if(!isMoving){
@@ -45,7 +45,7 @@ void OnStart()
 
 void OnUpdate(float deltaTime)
 {
-    // std::cout << "frame rate: " << 1 / deltaTime << std::endl;
+    std::cout << "frame rate: " << 1 / deltaTime << std::endl;
 
     if (isMoving)
     {

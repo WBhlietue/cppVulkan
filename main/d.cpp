@@ -1,8 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-// #include <ft2build.h>
-// #include FT_FREETYPE_H
 #include <glm/glm.hpp>
 
 #include <iostream>
@@ -23,9 +21,6 @@
 #include <main.h>
 #include <enter.h>
 
-#include <core/classes/vkObject.h>
-#include <core/classes/objectActions.h>
-
 uint32_t Width = 800;
 uint32_t Height = 600;
 
@@ -37,64 +32,115 @@ const std::vector<const char *> validationLayers = {
 const std::vector<const char *> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+#ifdef NDEBUG
 const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = false;
+#endif
+
+struct Object_OnClick
+{
+    int id;
+    std::function<void()> callback;
+    void Check(double x, double y);
+};
+struct Object_OnMouseEnter
+{
+    int id;
+    std::function<void()> callback;
+    bool isIn = false;
+    void Check(double x, double y);
+};
+struct Object_OnMouseLeave
+{
+    int id;
+    std::function<void()> callback;
+    bool isIn = false;
+    void Check(double x, double y);
+};
+struct Object_OnMouseStay
+{
+    int id;
+    std::function<void()> callback;
+    bool isIn = false;
+    void Check(double x, double y);
+};
 
 std::vector<Object_OnClick> onClickCallbacks;
 std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
 std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
 std::vector<Object_OnMouseStay> onMouseStayCallbacks;
 
-struct alignas(16) ShaderConst
+struct Vertex
 {
-    glm::vec4 color;
-    glm::vec2 size;
     glm::vec2 pos;
-    glm::vec2 scale;
-    int id;
-    int screen_width;
-    int screen_height;
-    float rotation;
-    float borderRadius;
+    glm::vec2 uv;
+    static VkVertexInputBindingDescription getBindingDescription()
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 2;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, uv);
+
+        return attributeDescriptions;
+    }
 };
 
-VkVertexInputBindingDescription Vertex::getBindingDescription()
+struct alignas(16) MaterialUBO
 {
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    glm::vec4 color;
+    glm::vec2 pos;
+    glm::vec2 size;
+    float borderRadius;
+    float padding[3];
+};
 
-    return bindingDescription;
-}
-
-std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttributeDescriptions()
+struct VKObject
 {
-    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+    VkBuffer vBuffer;
+    VkDeviceMemory vMemory;
+    VkBuffer iBuffer;
+    VkDeviceMemory iMemory;
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformMemory;
+    std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
+    MaterialUBO material;
+    int id;
 
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+    void Destroy(VkDevice device)
+    {
+        vkDestroyBuffer(device, iBuffer, nullptr);
+        vkDestroyBuffer(device, vBuffer, nullptr);
+        vkFreeMemory(device, iMemory, nullptr);
+        vkFreeMemory(device, vMemory, nullptr);
+    }
 
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, uv);
-
-    return attributeDescriptions;
-}
-
-void VKObject::Destroy(VkDevice device)
-{
-}
-
-void VKObject::AddOnClick(std::function<void()> onClick)
-{
-    Object_OnClick objOnClick = {};
-    objOnClick.id = id;
-    objOnClick.callback = onClick;
-    onClickCallbacks.push_back(objOnClick);
-}
+    void AddOnClick(std::function<void()> onClick)
+    {
+        Object_OnClick objOnClick = {};
+        objOnClick.id = id;
+        objOnClick.callback = onClick;
+        onClickCallbacks.push_back(objOnClick);
+    }
+};
 
 std::vector<VKObject> vkObject;
 
@@ -104,6 +150,28 @@ void Object_OnClick::Check(double x, double y)
     if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
     {
         callback();
+    }
+}
+
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    else
+    {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        func(instance, debugMessenger, pAllocator);
     }
 }
 
@@ -131,8 +199,10 @@ public:
     void run()
     {
         initWindow();
+
         initVulkan();
         squareMesh = createSquareMesh();
+        std::cout << squareMesh.vertices.size() << std::endl;
         OnStart();
 
         mainLoop();
@@ -181,17 +251,93 @@ public:
         object.Destroy(device);
     }
 
-    void AddObject(Object d)
+    void AddObject(VKObject object)
     {
-        VKObject object = {};
-        object.mesh = squareMesh;
-        object.material.color = d.color;
-        object.material.borderRadius = d.borderRadius;
-        object.material.pos = glm::vec2((float)(d.x), (float)(d.y));
-        object.material.rotation = 0;
-        object.material.size = glm::vec2(d.width, d.height);
-        object.id = d.id;
+        VkDeviceSize vBufferSize = object.vertices.size() * sizeof(Vertex);
+        VkDeviceSize iBufferSize = object.indices.size() * sizeof(int);
+
+        createBuffer(vBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, object.vBuffer, object.vMemory);
+        createBuffer(iBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, object.iBuffer, object.iMemory);
+        uploadToDevice(object.vertices.data(), vBufferSize, object.vBuffer, object.vMemory);
+        uploadToDevice(object.indices.data(), iBufferSize, object.iBuffer, object.iMemory);
+        createBuffer(sizeof(MaterialUBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, object.uniformBuffer, object.uniformMemory);
+
         vkObject.push_back(object);
+
+        VkDeviceSize bufferSize = sizeof(MaterialUBO) * vkObject.size();
+        try
+        {
+            vkDestroyBuffer(device, storageBuffer, nullptr);
+            vkFreeMemory(device, storageMemory, nullptr);
+        }
+        catch (...)
+        {
+        }
+
+        createBuffer(bufferSize,
+                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     storageBuffer, storageMemory);
+
+        void *data;
+        std::vector<MaterialUBO> materials(vkObject.size());
+        for (int i = 0; i < vkObject.size(); i++)
+        {
+            materials[i] = vkObject[i].material;
+        }
+        VkResult result = vkMapMemory(device, storageMemory, 0, bufferSize, 0, &data);
+        memcpy(data, materials.data(), (size_t)bufferSize);
+        vkUnmapMemory(device, storageMemory);
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = storageBuffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = VK_WHOLE_SIZE;
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = descriptorSet;
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
+    void UpdateObject(VKObject &object)
+    {
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingMemory;
+        int size = sizeof(Vertex) * object.vertices.size();
+
+        createBuffer(size,
+                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingBuffer, stagingMemory);
+
+        void *data;
+        vkMapMemory(device, stagingMemory, 0, size, 0, &data);
+        memcpy(data, object.vertices.data(), size);
+        vkUnmapMemory(device, stagingMemory);
+
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+        vkCmdCopyBuffer(commandBuffer, stagingBuffer, object.vBuffer, 1, &copyRegion);
+
+        endSingleTimeCommands(device, commandPool, graphicsQueue, commandBuffer);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingMemory, nullptr);
+
+        VkDeviceSize offset = sizeof(MaterialUBO) * object.id;
+        VkDeviceSize s = sizeof(MaterialUBO);
+
+        void *data1;
+        vkMapMemory(device, storageMemory, offset, s, 0, &data1);
+        memcpy(data1, &vkObject[object.id].material, s);
+        vkUnmapMemory(device, storageMemory);
     }
 
 private:
@@ -244,6 +390,16 @@ private:
     double mousePositionX = 0.0;
     double mousePositionY = 0.0;
 
+    struct Mesh
+    {
+        VkBuffer vBuffer;
+        VkDeviceMemory vMemory;
+        VkBuffer iBuffer;
+        VkDeviceMemory iMemory;
+        std::vector<Vertex> vertices;
+        std::vector<std::uint32_t> indices;
+    };
+
     Mesh squareMesh;
     Mesh createSquareMesh()
     {
@@ -262,33 +418,75 @@ private:
         createBuffer(iBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.iBuffer, mesh.iMemory);
         uploadToDevice(mesh.vertices.data(), vBufferSize, mesh.vBuffer, mesh.vMemory);
         uploadToDevice(mesh.indices.data(), iBufferSize, mesh.iBuffer, mesh.iMemory);
-
+        std::cout << mesh.vertices.size() << std::endl;
         return mesh;
+    }
+
+    VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = commandPool;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        return commandBuffer;
+    }
+
+    void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue graphicsQueue, VkCommandBuffer commandBuffer)
+    {
+        vkEndCommandBuffer(commandBuffer);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue);
+
+        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 
     void DrawObject(VkCommandBuffer commandBuffer, VKObject object)
     {
 
-        VkBuffer vertexBuffers[] = {object.mesh.vBuffer};
+        // Mesh mesh = {};
+        // mesh.vertices = {
+        //     {{-1, -1}, {0.0f, 0.0f}},
+        //     {{1, -1}, {1.0f, 0.0f}},
+        //     {{1, 1}, {1.0f, 1.0f}},
+        //     {{-1, 1}, {0.0f, 1.0f}}};
+        // mesh.indices = {0, 1, 2, 2, 3, 0};
+
+        // VkDeviceSize vBufferSize = mesh.vertices.size() * sizeof(Vertex);
+        // VkDeviceSize iBufferSize = mesh.indices.size() * sizeof(int);
+
+        // createBuffer(vBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.vBuffer, mesh.vMemory);
+        // createBuffer(iBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh.iBuffer, mesh.iMemory);
+        // uploadToDevice(mesh.vertices.data(), vBufferSize, mesh.vBuffer, mesh.vMemory);
+        // uploadToDevice(mesh.indices.data(), iBufferSize, mesh.iBuffer, mesh.iMemory);
+        // squareMesh = &mesh;
+
+        // std::cout << squareMesh->vertices.size() << std::endl;
+
+        VkBuffer vertexBuffers[] = {squareMesh.vBuffer};
         VkDeviceSize offset[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offset);
 
-        vkCmdBindIndexBuffer(commandBuffer, object.mesh.iBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, squareMesh.iBuffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-        ShaderConst sConst = {};
-        sConst.id = object.id;
-        sConst.screen_height = Height;
-        sConst.screen_width = Width;
-        sConst.color = object.material.color;
-        sConst.pos = object.material.pos;
-        sConst.size = object.material.size;
-        sConst.scale = glm::vec2(1.0f, 1.0f);
-        sConst.rotation = object.material.rotation;
-        sConst.borderRadius = object.material.borderRadius;
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderConst), &sConst);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.mesh.indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(squareMesh.indices.size()), 1, 0, 0, 0);
     }
 
     void uploadToDevice(void *srcData, VkDeviceSize size, VkBuffer &dstBuffer, VkDeviceMemory &dstBufferMemory)
@@ -349,6 +547,7 @@ private:
     void initVulkan()
     {
         createInstance();
+        setupDebugMessenger();
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -405,6 +604,43 @@ private:
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 
+    void updateVertexAndIndexBuffers(std::vector<Vertex> &vertices, std::vector<uint16_t> &indices,
+                                     VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory,
+                                     VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory)
+    {
+        VkDeviceSize vertexBufferSize = sizeof(Vertex) * vertices.size();
+        VkDeviceSize indexBufferSize = sizeof(uint16_t) * indices.size();
+
+        VkBuffer stagingVertexBuffer;
+        VkDeviceMemory stagingVertexBufferMemory;
+        createBuffer(vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingVertexBuffer, stagingVertexBufferMemory);
+
+        VkBuffer stagingIndexBuffer;
+        VkDeviceMemory stagingIndexBufferMemory;
+        createBuffer(indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     stagingIndexBuffer, stagingIndexBufferMemory);
+
+        void *data;
+        vkMapMemory(device, stagingVertexBufferMemory, 0, vertexBufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t)vertexBufferSize);
+        vkUnmapMemory(device, stagingVertexBufferMemory);
+
+        vkMapMemory(device, stagingIndexBufferMemory, 0, indexBufferSize, 0, &data);
+        memcpy(data, indices.data(), (size_t)indexBufferSize);
+        vkUnmapMemory(device, stagingIndexBufferMemory);
+
+        copyBuffer(stagingVertexBuffer, vertexBuffer, vertexBufferSize);
+        copyBuffer(stagingIndexBuffer, indexBuffer, indexBufferSize);
+
+        vkDestroyBuffer(device, stagingVertexBuffer, nullptr);
+        vkFreeMemory(device, stagingVertexBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingIndexBuffer, nullptr);
+        vkFreeMemory(device, stagingIndexBufferMemory, nullptr);
+    }
+
     void cleanup()
     {
         cleanupSwapChain();
@@ -429,6 +665,11 @@ private:
         vkDestroyCommandPool(device, commandPool, nullptr);
 
         vkDestroyDevice(device, nullptr);
+
+        if (enableValidationLayers)
+        {
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        }
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
@@ -486,6 +727,7 @@ private:
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
 
+            populateDebugMessengerCreateInfo(debugCreateInfo);
             createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
         }
         else
@@ -498,6 +740,29 @@ private:
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create instance!");
+        }
+    }
+
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
+    {
+        createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+    }
+
+    void setupDebugMessenger()
+    {
+        if (!enableValidationLayers)
+            return;
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo;
+        populateDebugMessengerCreateInfo(createInfo);
+
+        if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to set up debug messenger!");
         }
     }
 
@@ -1166,8 +1431,6 @@ private:
     {
         for (const auto &availablePresentMode : availablePresentModes)
         {
-            // VK_PRESENT_MODE_MAILBOX_KHR
-            // VK_PRESENT_MODE_FIFO_KHR
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
             {
                 return availablePresentMode;
@@ -1381,21 +1644,46 @@ HelloTriangleApplication app;
 void AddShape(Object object)
 {
 
-    app.AddObject(object);
+    VKObject data = {};
+    data.vertices = {
+        {{-1, -1}, {0.0f, 0.0f}},
+        {{1, -1}, {1.0f, 0.0f}},
+        {{1, 1}, {1.0f, 1.0f}},
+        {{-1, 1}, {0.0f, 1.0f}}};
+
+    data.indices = {0, 1, 2, 2, 3, 0};
+    data.material.color = object.color;
+    data.material.borderRadius = object.borderRadius;
+    data.material.pos = glm::vec2(object.x, object.y);
+    data.material.size = glm::vec2(object.width, object.height);
+    data.id = object.id;
+    app.AddObject(data);
 }
 
 void MoveShape(Object object, int newX, int newY)
 {
-    int objectIndex;
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            objectIndex = i;
-            break;
-        }
-    }
-    vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
+    // int objectIndex;
+    // for (int i = 0; i < vkObject.size(); i++)
+    // {
+    //     if (vkObject[i].id == object.id)
+    //     {
+    //         objectIndex = i;
+    //         break;
+    //     }
+    // }
+    // float centerX = ((float)(0.0) + newX) * 2 / Width;
+    // float centerY = ((float)(0.0) + newY) * 2 / Height;
+    // float x = (float)(object.width) / Width;
+    // float y = (float)(object.height) / Height;
+
+    // vkObject[objectIndex].vertices[0].pos = {centerX - x, centerY - y};
+    // vkObject[objectIndex].vertices[1].pos = {centerX + x, centerY - y};
+    // vkObject[objectIndex].vertices[2].pos = {centerX + x, centerY + y};
+    // vkObject[objectIndex].vertices[3].pos = {centerX - x, centerY + y};
+
+    // vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
+
+    // app.UpdateObject(vkObject[objectIndex]);
 }
 void VKAddOnClick(Object object, std::function<void()> onClick)
 {
@@ -1411,24 +1699,6 @@ void VKAddOnClick(Object object, std::function<void()> onClick)
 
 int main()
 {
-    // FT_Library ft;
-    // if (FT_Init_FreeType(&ft))
-    // {
-    //     printf("Could not init FreeType Library\n");
-    //     return -1;
-    // }
-    // FT_Face face;
-    // if (FT_New_Face(ft, "./src/font/Roboto-Regular.ttf", 0, &face))
-    // {
-    //     printf("Failed to load font\n");
-    //     return -1;
-    // }
-    // FT_Set_Pixel_Sizes(face, 0, 48);
-    // if (FT_Load_Char(face, 'A', FT_LOAD_RENDER))
-    // {
-    //     printf("Failed to load Glyph\n");
-    //     return -1;
-    // }
     try
     {
         app.run();

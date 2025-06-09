@@ -1,31 +1,31 @@
 #version 450
 
-layout(location = 1) in vec2 fragUV;  
-layout(location = 0) in vec3 fragColor;
-layout(location = 2) in flat uint materialIndex;
+layout(location = 0) in vec2 fragUV;  
 layout(location = 0) out vec4 outColor;
 
 
-struct MaterialUBO {
+layout(push_constant,std140) uniform PushConstants {
     vec4 color;
-    vec2 pos;
     vec2 size;
+    vec2 pos;
+    vec2 scale;
+    int id;
+    int screen_width;
+    int screen_height;
+    float rotation;
     float borderRadius;
-};
-
-layout(set = 0, binding = 0) buffer Materials {
-    MaterialUBO materials[];
-};
+} pc;
 
 
 void main() {
-    float screenWidth = 800.0;
-    float screenHeight = 600.0;
-    float width = materials[materialIndex].size.x;
-    float height = materials[materialIndex].size.y;
-    float centerX = materials[materialIndex].pos.x;
-    float centerY = materials[materialIndex].pos.y;
-    float radius = materials[materialIndex].borderRadius;
+    // outColor = vec4(1.0,1.0,0.0,1.0);
+    float screenWidth =pc.screen_width;
+    float screenHeight = pc.screen_height;
+    float width = pc.size.x;
+    float height = pc.size.y;
+    float centerX = pc.pos.x;
+    float centerY = pc.pos.y;
+    float radius = pc.borderRadius;
     float radiusX = radius / width;
     float radiusY = radius / height;
 
@@ -43,29 +43,29 @@ void main() {
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((-0.5+radiusX)*width+centerX, (-0.5+radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(materials[materialIndex].color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * materials[materialIndex].color.a);
+        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x < -0.5+radiusX) && (y > 0.5-radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((-0.5+radiusX)*width+centerX, (0.5-radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(materials[materialIndex].color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * materials[materialIndex].color.a);
+        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x > 0.5-radiusX) && (y < -0.5+radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((0.5-radiusX)*width+centerX, (-0.5+radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(materials[materialIndex].color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * materials[materialIndex].color.a);
+        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x > 0.5-radiusX) && (y > 0.5-radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((0.5-radiusX)*width+centerX, (0.5-radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(materials[materialIndex].color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * materials[materialIndex].color.a);
+        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }
     
     else{
-        outColor = materials[materialIndex].color;
+        outColor = pc.color;
     }
     
 }

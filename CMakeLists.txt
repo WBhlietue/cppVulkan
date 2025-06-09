@@ -25,6 +25,10 @@ add_executable(${PROJECT_NAME}  ${SOURCES})
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Vulkan REQUIRED) 
 find_package(glfw3 REQUIRED) 
+find_package(Freetype REQUIRED)
+
+target_link_libraries(Test PRIVATE Freetype::Freetype)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
