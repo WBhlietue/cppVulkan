@@ -24,14 +24,27 @@ float test = 0;
 
 bool shape2Move = true;
 
+int texture;
+
+void LoadTextures(){
+    texture = Load_Texture("assets/test.jpg");
+    std::cout << texture << std::endl;
+}
+
 void OnStart()
 {
-    obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 10);
     obj3 = DrawRectangle(100, 100, 100, 200, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
-    obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 0.0f, 1.0f, 0.5f), 30);
+    obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 30);
+    obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), 10);
     MoveShape(obj, 100, -40);
     AddOnClick(obj, []()
-               {if(!isMoving){
+               {
+                if(obj.texture_id == 0){
+                    obj.SetTexture(-1);
+                }else{
+                    obj.SetTexture(0);
+               }
+                if(!isMoving){
                         isMoving = true;
                     } });
     AddOnClick(obj2, []()
@@ -41,6 +54,7 @@ void OnStart()
                {
         b = -1;
         forward = true; });
+    obj.SetTexture(texture);
 }
 
 void OnUpdate(float deltaTime)
@@ -71,7 +85,7 @@ void OnUpdate(float deltaTime)
     }
     if (shape2Move)
     {
-        a += deltaTime;
+        a += deltaTime*0.5;
         if (a >= 1)
         {
             a -= 1;

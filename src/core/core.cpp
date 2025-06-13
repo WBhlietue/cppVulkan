@@ -1,4 +1,5 @@
 #include <core/core.h>
+#include <string>
 
 static int objectID = 0;
 
@@ -18,4 +19,8 @@ Object DrawRectangle(int width, int height, int x, int y, glm::vec4 color, float
 void AddOnClick(Object object, std::function<void()> onClick)
 {
     VKAddOnClick(object, onClick);
+}
+
+int Load_Texture(std::string path){
+    return VKLoadTexture(path);
 }

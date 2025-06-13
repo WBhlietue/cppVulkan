@@ -1,8 +1,10 @@
 #version 450
+#extension GL_EXT_nonuniform_qualifier: enable
 
 layout(location = 0) in vec2 fragUV;  
 layout(location = 0) out vec4 outColor;
 
+layout (set = 0, binding = 1) uniform sampler2D textures[];
 
 layout(push_constant,std140) uniform PushConstants {
     vec4 color;
@@ -14,6 +16,7 @@ layout(push_constant,std140) uniform PushConstants {
     int screen_height;
     float rotation;
     float borderRadius;
+    int texture_id;
 } pc;
 
 
@@ -38,34 +41,40 @@ void main() {
 
     x /= width;
     y /= height;
+
+    if(pc.texture_id == -1){
+        outColor = vec4(1.0,1.0,1.0,1.0);
+    }else{
+        outColor = texture(textures[nonuniformEXT(pc.texture_id)], fragUV);
+    }
     
     if((x <= -0.5+radiusX) && (y <= -0.5+radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((-0.5+radiusX)*width+centerX, (-0.5+radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
+        outColor *= vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x < -0.5+radiusX) && (y > 0.5-radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((-0.5+radiusX)*width+centerX, (0.5-radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
+        outColor *= vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x > 0.5-radiusX) && (y < -0.5+radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((0.5-radiusX)*width+centerX, (-0.5+radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
+        outColor *= vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }else
     if((x > 0.5-radiusX) && (y > 0.5-radiusY)){
         vec2 pos = vec2(gl_FragCoord.x,gl_FragCoord.y);
         vec2 center = vec2((0.5-radiusX)*width+centerX, (0.5-radiusY)*height+centerY);
         float dis = length(pos - center);
-        outColor = vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
+        outColor *= vec4(pc.color.rgb, smoothstep(0.0, fwidth(dis-radius), radius-dis) * pc.color.a);
     }
     
     else{
-        outColor = pc.color;
+        outColor *= pc.color;
     }
     
 }

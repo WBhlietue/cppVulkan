@@ -17,12 +17,17 @@
 #include <chrono>
 #include <thread>
 
+#include <core/classes/VKTextureManager.h>
 #include <main.h>
 #include <enter.h>
+
+#include <stb_image.h>
 
 #include <core/classes/vkObject.h>
 #include <core/classes/objectActions.h>
 #include <core/classes/graphicPipeline.h>
+
+#define STB_IMAGE_IMPLEMENTATION
 
 uint32_t Width = 800;
 uint32_t Height = 600;
@@ -30,7 +35,8 @@ uint32_t Height = 600;
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char *> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME};
 
 const bool enableValidationLayers = false;
 
@@ -50,6 +56,7 @@ struct alignas(16) ShaderConst
     int screen_height;
     float rotation;
     float borderRadius;
+    int textureID = -1;
 };
 
 std::vector<VKObject> vkObject;
@@ -112,6 +119,12 @@ public:
         vkObject.push_back(object);
     }
 
+    int LoadTexture(std::string path)
+    {
+        textureManager.LoadTexture(path);
+        return textureManager.textures.size() - 1;
+    }
+
 private:
     GLFWwindow *window;
 
@@ -158,6 +171,8 @@ private:
     double mousePositionX = 0.0;
     double mousePositionY = 0.0;
 
+    VKTextureManager textureManager;
+
     Mesh squareMesh;
     Mesh createSquareMesh()
     {
@@ -200,6 +215,7 @@ private:
         sConst.scale = glm::vec2(1.0f, 1.0f);
         sConst.rotation = object.material.rotation;
         sConst.borderRadius = object.material.borderRadius;
+        sConst.textureID = object.material.textureID;
         vkCmdPushConstants(commandBuffer, graphicPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderConst), &sConst);
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.mesh.indices.size()), 1, 0, 0, 0);
@@ -270,12 +286,14 @@ private:
         createImageViews();
         createRenderPass();
 
-        graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv");
+        createCommandPool();
+        createSyncObjects();
+        textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
+        LoadTextures();
+        graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
 
         createFramebuffers();
-        createCommandPool();
         createCommandBuffers();
-        createSyncObjects();
     }
 
     void mainLoop()
@@ -450,10 +468,16 @@ private:
         }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
+        VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+        indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+        indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+        indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
+        createInfo.pNext = &indexingFeatures;
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
@@ -1099,6 +1123,24 @@ void VKAddOnClick(Object object, std::function<void()> onClick)
         {
             onClickCallbacks.push_back(vkObject[i].AddOnClick(onClick));
             break;
+        }
+    }
+}
+
+int VKLoadTexture(std::string imagePath)
+{
+    return app.LoadTexture(imagePath);
+}
+
+void Object::SetTexture(int textureID)
+{
+    texture_id = textureID;
+    for (int i = 0; i < vkObject.size(); i++)
+    {
+        if (vkObject[i].id == id)
+        {
+            vkObject[i].SetTexture(textureID);
+            return;
         }
     }
 }

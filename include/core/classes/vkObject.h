@@ -17,6 +17,7 @@ struct VKObject
     int id;
 
     void Destroy(VkDevice device);
+    void SetTexture(int textureID);
 
     Object_OnClick AddOnClick(std::function<void()> onClick);
 };

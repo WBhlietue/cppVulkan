@@ -16,11 +16,15 @@ public:
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
-    void Create(VkDevice device, VkRenderPass renderPass, std::string shaderFrag, std::string shaderVert)
+
+    void Create(VkDevice device, VkRenderPass renderPass, std::string shaderFrag, std::string shaderVert, std::vector<Texture> textures)
     {
+        t = textures;
         InitSomething(device);
         createGraphicsPipeline(device, renderPass, shaderFrag, shaderVert);
+        BindTextures(device);
     }
+
     void BindBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize size)
     {
         VkDescriptorBufferInfo bufferInfo{};
@@ -40,6 +44,30 @@ public:
         vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 
+    void BindTextures(VkDevice device)
+    {
+        std::vector<VkDescriptorImageInfo> imageInfos;
+        for (const auto& tex : t)
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = tex.view;
+            imageInfo.sampler = tex.sampler;
+            imageInfos.push_back(imageInfo);
+        }
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = descriptorSet;
+        descriptorWrite.dstBinding = 1;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+        descriptorWrite.pImageInfo = imageInfos.data();
+
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    }
+
     void Destroy(VkDevice device)
     {
         vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
@@ -49,6 +77,7 @@ public:
     }
 
 private:
+    std::vector<Texture> t;
     VkShaderModule createShaderModule(const std::vector<char> &code, VkDevice device)
     {
         VkShaderModuleCreateInfo createInfo{};
@@ -85,28 +114,35 @@ private:
     }
     void InitSomething(VkDevice device)
     {
-        VkDescriptorSetLayoutBinding storageLayoutBinding{};
-        storageLayoutBinding.binding = 0;
-        storageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        storageLayoutBinding.descriptorCount = 1;
-        storageLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        storageLayoutBinding.pImmutableSamplers = nullptr;
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = static_cast<uint32_t>(t.size());
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &storageLayoutBinding;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
 
         vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout);
 
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSize.descriptorCount = 1;
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        poolSizes[0].descriptorCount = 1;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(t.size());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = 1;
 
         vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool);

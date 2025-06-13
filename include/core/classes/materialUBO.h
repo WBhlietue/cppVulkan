@@ -11,6 +11,7 @@ struct alignas(16) MaterialUBO
     float rotation;
     float borderRadius;
     float padding[3];
+    int textureID = -1;
 };
 
 #endif
