@@ -1,4 +1,3 @@
-# Build folders
 /build/
 /out/
 /bin/
@@ -6,7 +5,6 @@
 /Release/
 /x64/
 
-# CMake generated files
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -17,10 +15,8 @@ compile_commands.json
 CTestTestfile.cmake
 Testing/
 
-# VSCode files（如果你用 VSCode）
 .vscode/
 
-# Visual Studio specific（可选：如果用 VS）
 *.VC.db
 *.VC.opendb
 *.suo
@@ -28,14 +24,11 @@ Testing/
 *.userosscache
 *.sln.docstates
 
-# vcpkg installed packages（可选）
 /vcpkg_installed/
 
-# 系统文件
 .DS_Store
 Thumbs.db
 
-# 编译中间文件
 *.obj
 *.o
 *.lo
@@ -48,8 +41,8 @@ Thumbs.db
 *.dylib
 *.pdb
 
-# 日志
 *.log
 
-# 编译生成中间依赖
 *.d
+
+*.zip
