@@ -1,4 +1,5 @@
-#define GLFW_INCLUDE_VULKAN
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
@@ -26,6 +27,8 @@
 #include <core/classes/vkObject.h>
 #include <core/classes/objectActions.h>
 #include <core/classes/graphicPipeline.h>
+
+#include <core/vulkan/vulkanInstance.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -278,7 +281,8 @@ private:
 
     void initVulkan()
     {
-        createInstance();
+        seewk::core::vulkan::VulkanInstance vulkanInstance;
+        instance = vulkanInstance.getInstance();
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -381,43 +385,25 @@ private:
         createImageViews();
         createFramebuffers();
     }
-
-    void createInstance()
-    {
-
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-
-        auto extensions = getRequiredExtensions();
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-        createInfo.ppEnabledExtensionNames = extensions.data();
-
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-
-        createInfo.enabledLayerCount = 0;
-
-        createInfo.pNext = nullptr;
-
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create instance!");
-        }
-    }
-
     void createSurface()
     {
-        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+        VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+        if (result != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create window surface!");
+            switch (result)
+            {
+            case VK_ERROR_OUT_OF_HOST_MEMORY:
+                std::cerr << "Out of host memory" << std::endl;
+                break;
+            case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+                std::cerr << "Out of device memory" << std::endl;
+                break;
+            case VK_ERROR_INITIALIZATION_FAILED:
+                std::cerr << "Initialization failed" << std::endl;
+                break;
+            default:
+                std::cerr << "Unknown error: " << result << std::endl;
+            }
         }
     }
 
@@ -436,8 +422,13 @@ private:
 
         for (const auto &device : devices)
         {
-            if (isDeviceSuitable(device))
+
+            VkPhysicalDeviceProperties deviceProperties;
+            vkGetPhysicalDeviceProperties(device, &deviceProperties);
+            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && isDeviceSuitable(device))
             {
+                std::cout << "physical device: " << deviceProperties.deviceName << (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) << std::endl;
+
                 physicalDevice = device;
                 break;
             }
@@ -1063,22 +1054,6 @@ private:
         }
 
         return indices;
-    }
-
-    std::vector<const char *> getRequiredExtensions()
-    {
-        uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        if (enableValidationLayers)
-        {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        return extensions;
     }
 };
 

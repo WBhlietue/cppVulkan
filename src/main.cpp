@@ -59,7 +59,7 @@ void OnStart()
 
 void OnUpdate(float deltaTime)
 {
-    std::cout << "frame rate: " << 1 / deltaTime << std::endl;
+    // std::cout << "frame rate: " << 1 / deltaTime << std::endl;
 
     if (isMoving)
     {
