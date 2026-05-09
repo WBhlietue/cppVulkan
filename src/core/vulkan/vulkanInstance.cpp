@@ -18,16 +18,6 @@ std::vector<const char *> getRequiredExtensions()
 
 seewk::core::vulkan::VulkanInstance::VulkanInstance()
 {
-    Init();
-}
-
-vk::Instance seewk::core::vulkan::VulkanInstance::getInstance()
-{
-    return instance;
-}
-
-void seewk::core::vulkan::VulkanInstance::Init()
-{
     vk::ApplicationInfo appInfo{};
     appInfo.setPApplicationName("vulkanApp")
         .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
@@ -42,6 +32,25 @@ void seewk::core::vulkan::VulkanInstance::Init()
         nullptr,
         static_cast<uint32_t>(extensions.size()),
         extensions.data());
+    try
+    {
+        instance_ = vk::createInstance(createInfo);
+    }
+    catch (const vk::SystemError &e)
+    {
+        throw std::runtime_error(e.what());
+    }
+}
 
-    instance = vk::createInstance(createInfo);
+vk::Instance seewk::core::vulkan::VulkanInstance::getInstance()
+{
+    return instance_;
+}
+
+seewk::core::vulkan::VulkanInstance::~VulkanInstance()
+{
+    if (instance_)
+    {
+        // instance.destroy();
+    }
 }

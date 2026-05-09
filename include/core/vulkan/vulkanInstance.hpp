@@ -6,9 +6,9 @@ namespace seewk::core::vulkan{
 class VulkanInstance {
     public:
         VulkanInstance();
+        ~VulkanInstance();
         vk::Instance getInstance();
     private:
-        vk::Instance instance;
-        void Init();
+        vk::Instance instance_;
 };
 }

@@ -29,6 +29,7 @@
 #include <core/classes/graphicPipeline.h>
 
 #include <core/vulkan/vulkanInstance.hpp>
+#include <core/vulkan/window.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -94,10 +95,15 @@ struct SwapChainSupportDetails
 class VulkanCore
 {
 public:
+    VulkanCore()
+    {
+        window.setFramebufferSizeCallback(framebufferResizeCallback);
+        window.setMouseButtonCallback(mouseButtonCallback);
+        initVulkan();
+    }
     void run()
     {
-        initWindow();
-        initVulkan();
+
         squareMesh = createSquareMesh();
         OnStart();
         mainLoop();
@@ -129,12 +135,11 @@ public:
     }
 
 private:
-    GLFWwindow *window;
+    seewk::core::vulkan::Window window;
+    seewk::core::vulkan::VulkanInstance instance;
 
     VkBuffer storageBuffer;
     VkDeviceMemory storageMemory;
-
-    VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
 
@@ -244,17 +249,6 @@ private:
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
-    void initWindow()
-    {
-        glfwInit();
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        window = glfwCreateWindow(Width, Height, "Vulkan", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    }
     static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
     {
         auto app = reinterpret_cast<VulkanCore *>(glfwGetWindowUserPointer(window));
@@ -281,8 +275,6 @@ private:
 
     void initVulkan()
     {
-        seewk::core::vulkan::VulkanInstance vulkanInstance;
-        instance = vulkanInstance.getInstance();
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
@@ -303,14 +295,14 @@ private:
     void mainLoop()
     {
         auto lastTime = std::chrono::high_resolution_clock::now();
-        const float targetFrameTime = 1.0f / 60.0f; // 60 FPS
-        while (!glfwWindowShouldClose(window))
+        const float targetFrameTime = 1.0f / 60.0f;
+        while (!glfwWindowShouldClose(window.getWindow()))
         {
             auto currentTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             glfwPollEvents();
-            glfwGetCursorPos(window, &mousePositionX, &mousePositionY);
+            glfwGetCursorPos(window.getWindow(), &mousePositionX, &mousePositionY);
             mousePositionX -= Width / 2;
             mousePositionY -= Height / 2;
             drawFrame();
@@ -359,10 +351,10 @@ private:
 
         vkDestroyDevice(device, nullptr);
 
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyInstance(instance, nullptr);
+        vkDestroySurfaceKHR(instance.getInstance(), surface, nullptr);
+        vkDestroyInstance(instance.getInstance(), nullptr);
 
-        glfwDestroyWindow(window);
+        glfwDestroyWindow(window.getWindow());
 
         glfwTerminate();
     }
@@ -370,10 +362,10 @@ private:
     void recreateSwapChain()
     {
         int width = 0, height = 0;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(window.getWindow(), &width, &height);
         while (width == 0 || height == 0)
         {
-            glfwGetFramebufferSize(window, &width, &height);
+            glfwGetFramebufferSize(window.getWindow(), &width, &height);
             glfwWaitEvents();
         }
 
@@ -387,7 +379,7 @@ private:
     }
     void createSurface()
     {
-        VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+        VkResult result = glfwCreateWindowSurface(instance.getInstance(), window.getWindow(), nullptr, &surface);
         if (result != VK_SUCCESS)
         {
             switch (result)
@@ -410,7 +402,7 @@ private:
     void pickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(instance.getInstance(), &deviceCount, nullptr);
 
         if (deviceCount == 0)
         {
@@ -418,7 +410,7 @@ private:
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(instance.getInstance(), &deviceCount, devices.data());
 
         for (const auto &device : devices)
         {
@@ -925,8 +917,6 @@ private:
     {
         for (const auto &availablePresentMode : availablePresentModes)
         {
-            // VK_PRESENT_MODE_MAILBOX_KHR
-            // VK_PRESENT_MODE_FIFO_KHR
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
             {
                 return availablePresentMode;
@@ -945,7 +935,7 @@ private:
         else
         {
             int width, height;
-            glfwGetFramebufferSize(window, &width, &height);
+            glfwGetFramebufferSize(window.getWindow(), &width, &height);
 
             VkExtent2D actualExtent = {
                 static_cast<uint32_t>(width),
@@ -1085,7 +1075,6 @@ void SetImage(Object object, std::string imagePath)
     {
         if (vkObject[i].id == object.id)
         {
-            ///
             break;
         }
     }

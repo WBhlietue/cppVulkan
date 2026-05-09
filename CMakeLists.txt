@@ -1,6 +1,7 @@
 set(PROJECT_NAME Test)
 
 cmake_minimum_required(VERSION 3.15)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded") 
 project(${PROJECT_NAME})
 
 
@@ -12,8 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE SOURCES 
 "${CMAKE_SOURCE_DIR}/src/*.cpp"
-"${CMAKE_SOURCE_DIR}/main/enter.cpp"
-# "${CMAKE_SOURCE_DIR}/main/windows/*.cpp"
 )
 
 if (MSVC)
