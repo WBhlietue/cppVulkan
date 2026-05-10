@@ -28,8 +28,11 @@
 #include <core/classes/objectActions.h>
 #include <core/classes/graphicPipeline.h>
 
-#include <core/vulkan/vulkanInstance.hpp>
+#include <core/vulkan/instance.hpp>
 #include <core/vulkan/window.hpp>
+#include <core/vulkan/surface.hpp>
+
+using namespace seewk::core::vulkan;
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -95,7 +98,7 @@ struct SwapChainSupportDetails
 class VulkanCore
 {
 public:
-    VulkanCore()
+    VulkanCore() : surface(window)
     {
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
@@ -135,13 +138,14 @@ public:
     }
 
 private:
-    seewk::core::vulkan::Window window;
-    seewk::core::vulkan::VulkanInstance instance;
+    Window window;
+    // Instance instance;
+    using instance = Instance;
 
     VkBuffer storageBuffer;
     VkDeviceMemory storageMemory;
     VkDebugUtilsMessengerEXT debugMessenger;
-    VkSurfaceKHR surface;
+    Surface surface;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
@@ -275,7 +279,7 @@ private:
 
     void initVulkan()
     {
-        createSurface();
+        // createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
         createSwapChain();
@@ -350,13 +354,7 @@ private:
         vkDestroyCommandPool(device, commandPool, nullptr);
 
         vkDestroyDevice(device, nullptr);
-
-        vkDestroySurfaceKHR(instance.getInstance(), surface, nullptr);
-        vkDestroyInstance(instance.getInstance(), nullptr);
-
-        glfwDestroyWindow(window.getWindow());
-
-        glfwTerminate();
+        // vkDestroySurfaceKHR(instance::GET().getInstance(), surface, nullptr);
     }
 
     void recreateSwapChain()
@@ -377,32 +375,11 @@ private:
         createImageViews();
         createFramebuffers();
     }
-    void createSurface()
-    {
-        VkResult result = glfwCreateWindowSurface(instance.getInstance(), window.getWindow(), nullptr, &surface);
-        if (result != VK_SUCCESS)
-        {
-            switch (result)
-            {
-            case VK_ERROR_OUT_OF_HOST_MEMORY:
-                std::cerr << "Out of host memory" << std::endl;
-                break;
-            case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-                std::cerr << "Out of device memory" << std::endl;
-                break;
-            case VK_ERROR_INITIALIZATION_FAILED:
-                std::cerr << "Initialization failed" << std::endl;
-                break;
-            default:
-                std::cerr << "Unknown error: " << result << std::endl;
-            }
-        }
-    }
 
     void pickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(instance.getInstance(), &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(instance::GET().getInstance(), &deviceCount, nullptr);
 
         if (deviceCount == 0)
         {
@@ -410,7 +387,7 @@ private:
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance.getInstance(), &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(instance::GET().getInstance(), &deviceCount, devices.data());
 
         for (const auto &device : devices)
         {
@@ -496,7 +473,7 @@ private:
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface;
+        createInfo.surface = surface.getSurface();
 
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -952,24 +929,24 @@ private:
     {
         SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface.getSurface(), &details.capabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface.getSurface(), &formatCount, nullptr);
 
         if (formatCount != 0)
         {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface.getSurface(), &formatCount, details.formats.data());
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface.getSurface(), &presentModeCount, nullptr);
 
         if (presentModeCount != 0)
         {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface.getSurface(), &presentModeCount, details.presentModes.data());
         }
 
         return details;
@@ -1028,7 +1005,7 @@ private:
             }
 
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface.getSurface(), &presentSupport);
 
             if (presentSupport)
             {

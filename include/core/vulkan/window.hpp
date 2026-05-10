@@ -9,7 +9,7 @@ namespace seewk::core::vulkan
     public:
         Window();
         ~Window();
-        GLFWwindow *getWindow();
+        GLFWwindow *getWindow() const;
         glm::vec2 getWindowSize();
         void setWindowSize(glm::vec2 size);
         void setWindowTitle(std::string title);

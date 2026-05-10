@@ -2,8 +2,11 @@
 
 #include <glfw/glfw3.h>
 #include <vulkan/vulkan.hpp>
-#include <core/vulkan/vulkanInstance.hpp>
+#include <core/vulkan/instance.hpp>
 #include <vector>
+#include <iostream>
+
+using namespace seewk::core::vulkan;
 
 std::vector<const char *> getRequiredExtensions()
 {
@@ -16,7 +19,7 @@ std::vector<const char *> getRequiredExtensions()
     return extensions;
 }
 
-seewk::core::vulkan::VulkanInstance::VulkanInstance()
+Instance::Instance()
 {
     vk::ApplicationInfo appInfo{};
     appInfo.setPApplicationName("vulkanApp")
@@ -34,7 +37,7 @@ seewk::core::vulkan::VulkanInstance::VulkanInstance()
         extensions.data());
     try
     {
-        instance_ = vk::createInstance(createInfo);
+        instance = vk::createInstance(createInfo);
     }
     catch (const vk::SystemError &e)
     {
@@ -42,15 +45,20 @@ seewk::core::vulkan::VulkanInstance::VulkanInstance()
     }
 }
 
-vk::Instance seewk::core::vulkan::VulkanInstance::getInstance()
+Instance &Instance::GET()
 {
-    return instance_;
+    static Instance ins;
+    return ins;
+}
+vk::Instance &Instance::getInstance()
+{
+    return instance;
 }
 
-seewk::core::vulkan::VulkanInstance::~VulkanInstance()
+Instance::~Instance()
 {
-    if (instance_)
+    if (instance)
     {
-        // instance.destroy();
+        instance.destroy();
     }
 }
