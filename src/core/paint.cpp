@@ -8,6 +8,5 @@ void Paint(JSON json)
     for (auto &item : json.items())
     {
         JSON content = item.value();
-        cout << content["type"] << endl;
     }
 }

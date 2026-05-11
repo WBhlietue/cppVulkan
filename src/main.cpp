@@ -2,6 +2,7 @@
 #include <iostream>
 #include <core/core.h>
 #include <cmath>
+#include<core/vulkan/log.hpp>
 
 std::string mainPage = "main";
 Object obj;
@@ -28,7 +29,6 @@ int texture;
 
 void LoadTextures(){
     texture = Load_Texture("assets/test.jpg");
-    std::cout << texture << std::endl;
 }
 
 void OnStart()

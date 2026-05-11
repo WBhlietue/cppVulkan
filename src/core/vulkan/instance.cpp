@@ -3,6 +3,7 @@
 #include <glfw/glfw3.h>
 #include <vulkan/vulkan.hpp>
 #include <core/vulkan/instance.hpp>
+#include <core/vulkan/log.hpp>
 #include <vector>
 #include <iostream>
 
@@ -21,6 +22,7 @@ std::vector<const char *> getRequiredExtensions()
 
 Instance::Instance()
 {
+    Log::print("Creating vulkan instance...");
     vk::ApplicationInfo appInfo{};
     appInfo.setPApplicationName("vulkanApp")
         .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
@@ -43,6 +45,7 @@ Instance::Instance()
     {
         throw std::runtime_error(e.what());
     }
+    Log::print("Instance created successfully.");
 }
 
 Instance &Instance::GET()
