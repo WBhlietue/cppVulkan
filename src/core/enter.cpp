@@ -141,8 +141,6 @@ public:
 
 private:
     Window window;
-    // Instance instance;
-
     VkBuffer storageBuffer;
     VkDeviceMemory storageMemory;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -264,6 +262,11 @@ private:
             app->OnClick();
         }
     }
+    static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
+    {
+        auto app = reinterpret_cast<VulkanCore *>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
+    }
 
     void OnClick()
     {
@@ -273,11 +276,7 @@ private:
         }
     }
 
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
-    {
-        auto app = reinterpret_cast<VulkanCore *>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
+    
 
     void initVulkan()
     {
@@ -359,8 +358,6 @@ private:
         }
 
         vkDestroyCommandPool(device, commandPool, nullptr);
-
-        // vkDestroyDevice(device, nullptr);
     }
 
     void recreateSwapChain()
