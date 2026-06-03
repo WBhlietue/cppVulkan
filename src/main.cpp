@@ -1,3 +1,28 @@
+// #include<main/form.hpp>
+// #include <cmath>
+// #include<main.h>
+// #include<core/vulkan/log.hpp>
+
+// class Form1: public seewk::main::Form{
+//     seewk::main::Object obj1;
+//     void OnLoad() override{
+//         obj1 = GetObject();
+//         obj1.SetPosition(glm::vec2(100, 100));
+//         obj1.SetSize(glm::vec2(100, 100));
+//     }
+// };
+// Form1 form;
+// void LoadTextures(){
+
+// }
+// void OnStart(){
+//     form.Show();
+// }
+// void OnUpdate(float deltaTime){
+
+// }
+
+
 #include <main.h>
 #include <iostream>
 #include <core/core.h>

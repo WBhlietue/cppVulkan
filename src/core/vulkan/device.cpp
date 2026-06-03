@@ -168,9 +168,6 @@ void Device::createLogicalDevice(Surface &surface)
 
 void Device::init(Surface &surface)
 {
-    // Window w;
-
-    // Surface surf(window);
     Log::print(surface.getSurface());
     pickPhysicalDevice(surface);
     createLogicalDevice(surface);
