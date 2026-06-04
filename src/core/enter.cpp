@@ -1,5 +1,7 @@
 #include<core/vulkan/vulkanCore.hpp>
-
+#include<core/vulkan/log.hpp>
+#include<enter.h>
+#include<main.h>
 
 int main()
 {
@@ -8,6 +10,7 @@ int main()
     {
         VulkanCore &app = getCore();
         seewk::core::vulkan::Log::print("program run");
+        OnStart();
         app.run();
     }
     catch (const std::exception &e)
@@ -21,10 +24,11 @@ int main()
 int VKLoadTexture(std::string imagePath)
 {
     VulkanCore &app = getCore();
-    return app.win.LoadTexture(imagePath);
+    return 0;
+    // return app.win.LoadTexture(imagePath);
 }
 void AddShape(Object object)
 {
     VulkanCore &app = getCore();
-    app.win.AddObject(object);
+    // app.win.AddObject(object);
 }

@@ -1,9 +1,14 @@
-// #include <core/vulkan/appWindow.hpp>
-// #include <core/vulkan/log.hpp>
-// using namespace seewk::core::vulkan;
+#include<core/vulkan/appWindow.hpp>
 
-// AppWindow::AppWindow(std::string title, int width , int height) : surface(window)
-// {
-//     Log::print("windowwwwwwwwwwwwwwwwww");
-// }
+WindowManager &GetWindowManager()
+{
+    static WindowManager instance;
+    return instance;
+}
 
+
+auto &manager = GetWindowManager();
+void AppWindow::Init(){
+    manager.AddWindow(this);
+    std::cout << manager.GetWindows().size() << std::endl;
+}

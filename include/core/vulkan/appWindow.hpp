@@ -24,7 +24,7 @@
 #include <main.h>
 #include <enter.h>
 
-#include <stb_image.h>
+// #include <stb_image.h>
 
 #include <core/classes/vkObject.h>
 #include <core/classes/objectActions.h>
@@ -35,14 +35,12 @@
 #include <core/vulkan/surface.hpp>
 #include <core/vulkan/log.hpp>
 #include <core/vulkan/device.hpp>
-#include <main/form.hpp>
+
+// #include<core/vulkan/vulkanCore.hpp>
 
 using namespace seewk::core::vulkan;
 
-#define STB_IMAGE_IMPLEMENTATION
-
-uint32_t Width = 800;
-uint32_t Height = 600;
+// #define STB_IMAGE_IMPLEMENTATION
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -52,10 +50,7 @@ const std::vector<const char *> deviceExtensions = {
 
 const bool enableValidationLayers = false;
 
-std::vector<Object_OnClick> onClickCallbacks;
-std::vector<Object_OnMouseEnter> onMouseEnterCallbacks;
-std::vector<Object_OnMouseLeave> onMouseLeaveCallbacks;
-std::vector<Object_OnMouseStay> onMouseStayCallbacks;
+// std::vector<Object_OnClick> onClickCallbacks;
 
 struct alignas(16) ShaderConst
 {
@@ -71,24 +66,26 @@ struct alignas(16) ShaderConst
     int textureID = -1;
 };
 
-class ObjectManager{
-    public:
-        static ObjectManager &GetInstance(){
-            static ObjectManager instance;
-            return instance;
-        }
+class ObjectManager
+{
+public:
+    static ObjectManager &GetInstance()
+    {
+        static ObjectManager instance;
+        return instance;
+    }
 };
 
-static std::vector<VKObject> vkObject;
 
-void Object_OnClick::Check(double x, double y)
-{
-    MaterialUBO material = vkObject[id].material;
-    if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
-    {
-        callback();
-    }
-}
+
+// void Object_OnClick::Check(double x, double y)
+// {
+//     MaterialUBO material = vkObject[id].material;
+//     if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
+//     {
+//         callback();
+//     }
+// }
 
 struct QueueFamilyIndices
 {
@@ -116,16 +113,17 @@ public:
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
         initVulkan();
+        Init();
+        run();
     }
     void run()
     {
         squareMesh = createSquareMesh();
-        OnStart();
+        // OnStart();
         load();
-        mainLoop();
-        cleanup();
+        // mainLoop();
+        // cleanup();
     }
-
 
     void DestroyObject(VKObject object)
     {
@@ -142,6 +140,7 @@ public:
         object.material.rotation = 0;
         object.material.size = glm::vec2(d.width, d.height);
         object.id = d.id;
+        std::cout << "add\n" ;
         vkObject.push_back(object);
     }
 
@@ -150,10 +149,21 @@ public:
         textureManager.LoadTexture(path);
         return textureManager.textures.size() - 1;
     }
+    void Loop()
+    {
+        // drawFrame();
+        mainLoop();
+    }
+
+    Window window;
+
+    Window& GETwindow(){
+        return window;
+    }
 
 private:
+ std::vector<VKObject> vkObject;
     // std::vector<AppWindow> windows;
-    Window window;
     VkBuffer storageBuffer;
     VkDeviceMemory storageMemory;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -195,10 +205,13 @@ private:
 
     double mousePositionX = 0.0;
     double mousePositionY = 0.0;
+    uint32_t Width = 800;
+    uint32_t Height = 600;
 
     VKTextureManager textureManager;
 
     Mesh squareMesh;
+    void Init();
     Mesh createSquareMesh()
     {
         Mesh mesh = {};
@@ -222,7 +235,6 @@ private:
 
     void DrawObject(VkCommandBuffer commandBuffer, VKObject object)
     {
-
         VkBuffer vertexBuffers[] = {object.mesh.vBuffer};
         VkDeviceSize offset[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offset);
@@ -283,13 +295,11 @@ private:
 
     void OnClick()
     {
-        for (auto &obj : onClickCallbacks)
-        {
-            obj.Check(mousePositionX, mousePositionY);
-        }
+        // for (auto &obj : onClickCallbacks)
+        // {
+        //     obj.Check(mousePositionX, mousePositionY);
+        // }
     }
-
-    
 
     void initVulkan()
     {
@@ -304,7 +314,7 @@ private:
         createRenderPass();
         createCommandPool();
         createSyncObjects();
-        Log::print("end init vulkan"); 
+        Log::print("end init vulkan");
     }
     void load()
     {
@@ -708,6 +718,7 @@ private:
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        std::cout << vkObject.size() << std::endl;
         for (const auto &obj : vkObject)
         {
             DrawObject(commandBuffer, obj);
@@ -762,7 +773,6 @@ private:
         }
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
@@ -961,53 +971,71 @@ private:
     }
 };
 
-void MoveShape(Object object, int newX, int newY)
-{
-    int objectIndex;
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            objectIndex = i;
-            break;
-        }
-    }
-    vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
-}
+// void MoveShape(Object object, int newX, int newY)
+// {
+//     int objectIndex;
+//     for (int i = 0; i < vkObject.size(); i++)
+//     {
+//         if (vkObject[i].id == object.id)
+//         {
+//             objectIndex = i;
+//             break;
+//         }
+//     }
+//     vkObject[objectIndex].material.pos = glm::vec2(newX, newY);
+// }
 
-void SetImage(Object object, std::string imagePath)
-{
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            break;
-        }
-    }
-}
-void VKAddOnClick(Object object, std::function<void()> onClick)
-{
-    for (int i = 0; i < vkObject.size(); i++)
-    {
-        if (vkObject[i].id == object.id)
-        {
-            onClickCallbacks.push_back(vkObject[i].AddOnClick(onClick));
-            break;
-        }
-    }
-}
+// void SetImage(Object object, std::string imagePath)
+// {
+//     for (int i = 0; i < vkObject.size(); i++)
+//     {
+//         if (vkObject[i].id == object.id)
+//         {
+//             break;
+//         }
+//     }
+// }
+// void VKAddOnClick(Object object, std::function<void()> onClick)
+// {
+//     for (int i = 0; i < vkObject.size(); i++)
+//     {
+//         if (vkObject[i].id == object.id)
+//         {
+//             // onClickCallbacks.push_back(vkObject[i].AddOnClick(onClick));
+//             break;
+//         }
+//     }
+// }
 
-void Object::SetTexture(int textureID)
+// void Object::SetTexture(int textureID)
+// {
+//     texture_id = textureID;
+//     for (int i = 0; i < vkObject.size(); i++)
+//     {
+//         if (vkObject[i].id == id)
+//         {
+//             vkObject[i].SetTexture(textureID);
+//             return;
+//         }
+//     }
+// }
+
+
+class WindowManager
 {
-    texture_id = textureID;
-    for (int i = 0; i < vkObject.size(); i++)
+public:
+    void AddWindow(AppWindow *window)
     {
-        if (vkObject[i].id == id)
-        {
-            vkObject[i].SetTexture(textureID);
-            return;
-        }
+        windows.push_back(window);
     }
-}
+    std::vector<AppWindow *> &GetWindows()
+    {
+        return windows;
+    }
+
+private:
+    std::vector<AppWindow *> windows;
+};
 
 
+WindowManager &GetWindowManager();

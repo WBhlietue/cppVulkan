@@ -2,6 +2,7 @@
 #define enter_h
 #include <functional>
 #include<string>
+#include <glm/glm.hpp>
 
 struct Object
 {
@@ -18,6 +19,6 @@ struct Object
 
 void AddShape(Object object);
 void MoveShape(Object object, int newX, int newY);
-void VKAddOnClick(Object object, std::function<void()> onClick);
+// void VKAddOnClick(Object object, std::function<void()> onClick);
 int VKLoadTexture(std::string path);
 #endif
