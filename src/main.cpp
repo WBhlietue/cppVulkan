@@ -1,8 +1,32 @@
+#include <main/form.hpp>
+// #include <cmath>
+// #include<main.h>
+// #include<core/vulkan/log.hpp>
+
+// class Form1: public seewk::main::Form{
+//     seewk::main::Object obj1;
+//     void OnLoad() override{
+//         obj1 = GetObject();
+//         obj1.SetPosition(glm::vec2(100, 100));
+//         obj1.SetSize(glm::vec2(100, 100));
+//     }
+// };
+// Form1 form;
+// void LoadTextures(){
+
+// }
+// void OnStart(){
+//     form.Show();
+// }
+// void OnUpdate(float deltaTime){
+
+// }
+
 #include <main.h>
 #include <iostream>
 #include <core/core.h>
 #include <cmath>
-#include<core/vulkan/log.hpp>
+#include <core/vulkan/log.hpp>
 
 std::string mainPage = "main";
 Object obj;
@@ -27,87 +51,50 @@ bool shape2Move = true;
 
 int texture;
 
-void LoadTextures(){
+void LoadTextures()
+{
     texture = Load_Texture("assets/test.jpg");
 }
 
+
+class Form1 : public seewk::main::Form
+{
+public:
+    // Form1()
+    // {
+    //     OnLoad();
+    // }
+    void OnLoad() 
+    {
+
+        obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 30);
+    }
+};
+
+class Form2 : public seewk::main::Form
+{
+public:
+    // Form2()
+    // {
+    //     OnLoad();
+    // }
+    void OnLoad() 
+    {
+        obj = DrawRectangle(200, 100, 300, -100, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), 30);
+    }
+};
+
+Form1 form;
+Form2* form2;
 void OnStart()
 {
-    obj3 = DrawRectangle(100, 100, 100, 200, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 50);
-    obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 30);
-    obj2 = DrawRectangle(100, 100, 0, 0, glm::vec4(0.0f, 0.0f, 1.0f, 0.5f), 10);
-    MoveShape(obj, 100, -40);
-    AddOnClick(obj, []()
-               {
-                if(obj.texture_id == 0){
-                    obj.SetTexture(-1);
-                }else{
-                    obj.SetTexture(0);
-               }
-                if(!isMoving){
-                        isMoving = true;
-                    } });
-    AddOnClick(obj2, []()
-               { shape2Move = !shape2Move; });
-
-    AddOnClick(obj3, []()
-               {
-        b = -1;
-        forward = true; });
-    obj.SetTexture(texture);
+    form2 = new Form2();
 }
 
+void OnOver(){
+    std::cout << "over\n";
+    form2->Close();
+}
 void OnUpdate(float deltaTime)
 {
-    // std::cout << "frame rate: " << 1 / deltaTime << std::endl;
-
-    if (isMoving)
-    {
-        if (isTestForward)
-        {
-            test += deltaTime * 2;
-            if (test >= 1)
-            {
-                isMoving = false;
-                isTestForward = false;
-            }
-        }
-        else
-        {
-            test -= deltaTime * 2;
-            if (test <= 0)
-            {
-                isMoving = false;
-                isTestForward = true;
-            }
-        }
-        MoveShape(obj, 100, -40 + 200 * test * test);
-    }
-    if (shape2Move)
-    {
-        a += deltaTime*0.5;
-        if (a >= 1)
-        {
-            a -= 1;
-        }
-        MoveShape(obj2, centerX + radius * cos(a * 2 * PI), centerY + radius * sin(a * 2 * PI));
-    }
-    if (forward)
-    {
-        b += deltaTime * 2;
-        if (b >= 1)
-        {
-            forward = false;
-        }
-    }
-    else
-    {
-        b -= deltaTime * 2;
-        if (b <= -1)
-        {
-            forward = true;
-        }
-    }
-
-    MoveShape(obj3, 300 * b, -200);
 }

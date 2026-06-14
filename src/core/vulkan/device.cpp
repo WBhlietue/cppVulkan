@@ -194,5 +194,6 @@ vk::Queue Device::getPresentQueue()
 }
 Device::~Device()
 {
+    std::cout << "destroy device" << std::endl;
     device.destroy();
 }

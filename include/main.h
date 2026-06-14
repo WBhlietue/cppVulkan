@@ -4,6 +4,7 @@
 #include<string>
 void LoadTextures();
 void OnStart();
+void OnOver();
 void OnUpdate(float deltaTime);
 extern std::string mainPage;
 

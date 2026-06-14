@@ -18,7 +18,7 @@ Object DrawRectangle(int width, int height, int x, int y, glm::vec4 color, float
 }
 void AddOnClick(Object object, std::function<void()> onClick)
 {
-    VKAddOnClick(object, onClick);
+    // VKAddOnClick(object, onClick);
 }
 
 int Load_Texture(std::string path){
