@@ -12,6 +12,7 @@ int main()
         seewk::core::vulkan::Log::print("program run");
         OnStart();
         app.run();
+        OnOver();
     }
     catch (const std::exception &e)
     {

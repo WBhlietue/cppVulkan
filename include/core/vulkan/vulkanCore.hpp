@@ -8,24 +8,24 @@ public:
     // AppWindow win;
     void run()
     {
-        windows[0]->Loop();
-        // auto lastTime = std::chrono::high_resolution_clock::now();
-        // const float targetFrameTime = 1.0f / 60.0f;
-        // while (!glfwWindowShouldClose(windows[0]->window.getWindow()))
-        // {
+        // windows[0]->Loop();
+        auto lastTime = std::chrono::high_resolution_clock::now();
+        const float targetFrameTime = 1.0f / 60.0f;
+        while (!glfwWindowShouldClose(windows[0]->window.getWindow()))
+        {
             
-        //     auto currentTime = std::chrono::high_resolution_clock::now();
+            auto currentTime = std::chrono::high_resolution_clock::now();
             
-        //     std::chrono::duration<float> deltaTime = currentTime - lastTime;
+            std::chrono::duration<float> deltaTime = currentTime - lastTime;
             
-        //     lastTime = currentTime;
+            lastTime = currentTime;
             
             
-        //     for (int i = 0; i < windows.size(); i++)
-        //     {
-        //         windows[i]->Loop();
-        //     }
-        // }
+            for (int i = 0; i < windows.size(); i++)
+            {
+                windows[i]->Loop();
+            }
+        }
 
         // vkDeviceWaitIdle(device);
     };

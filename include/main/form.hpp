@@ -19,6 +19,7 @@ namespace seewk::main
     public:
         FormType type = FormType::USE_UPDATE;
 
+
         Form()
         {
             OnLoad();
@@ -41,13 +42,16 @@ namespace seewk::main
             wind.AddObject(object);
             return object;
         }
+        void Close(){
+            delete this;
+        }
 
     private:
         std::vector<int> objects;
         AppWindow wind;
 
     protected:
-        virtual void OnLoad() {}
+        virtual void OnLoad() = 0;
         virtual void OnShow() {}
         virtual void OnUpdate() {}
     };

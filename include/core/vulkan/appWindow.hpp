@@ -76,8 +76,6 @@ public:
     }
 };
 
-
-
 // void Object_OnClick::Check(double x, double y)
 // {
 //     MaterialUBO material = vkObject[id].material;
@@ -140,7 +138,6 @@ public:
         object.material.rotation = 0;
         object.material.size = glm::vec2(d.width, d.height);
         object.id = d.id;
-        std::cout << "add\n" ;
         vkObject.push_back(object);
     }
 
@@ -151,18 +148,20 @@ public:
     }
     void Loop()
     {
-        // drawFrame();
-        mainLoop();
+        glfwPollEvents();
+        drawFrame();
+        // mainLoop();
     }
 
     Window window;
 
-    Window& GETwindow(){
+    Window &GETwindow()
+    {
         return window;
     }
 
 private:
- std::vector<VKObject> vkObject;
+    std::vector<VKObject> vkObject;
     // std::vector<AppWindow> windows;
     VkBuffer storageBuffer;
     VkDeviceMemory storageMemory;
@@ -718,7 +717,6 @@ private:
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        std::cout << vkObject.size() << std::endl;
         for (const auto &obj : vkObject)
         {
             DrawObject(commandBuffer, obj);
@@ -1020,7 +1018,6 @@ private:
 //     }
 // }
 
-
 class WindowManager
 {
 public:
@@ -1036,6 +1033,5 @@ public:
 private:
     std::vector<AppWindow *> windows;
 };
-
 
 WindowManager &GetWindowManager();
