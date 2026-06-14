@@ -22,7 +22,7 @@ namespace seewk::main
 
         Form()
         {
-            OnLoad();
+            // OnLoad();
         }
 
         void Show()

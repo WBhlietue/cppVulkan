@@ -60,27 +60,27 @@ void LoadTextures()
 class Form1 : public seewk::main::Form
 {
 public:
-    // Form1()
-    // {
-    //     OnLoad();
-    // }
-    void OnLoad() 
+    Form1()
+    {
+        OnLoad();
+    }
+    void OnLoad ()override 
     {
 
-        obj = DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 30);
+        DrawRectangle(400, 200, 300, -100, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 30);
     }
 };
 
 class Form2 : public seewk::main::Form
 {
 public:
-    // Form2()
-    // {
-    //     OnLoad();
-    // }
-    void OnLoad() 
+    Form2()
     {
-        obj = DrawRectangle(200, 100, 300, -100, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), 30);
+        OnLoad();
+    }
+    void OnLoad()  override
+    {
+        DrawRectangle(200, 100, 300, -100, glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), 30);
     }
 };
 
