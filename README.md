@@ -1,12 +1,17 @@
-1. install dependency
-```
-vcpkg install --x-feature=client
-```
-2. use this tool to run project simple
+1. use this tool to run project simple
 
 https://github.com/WBhlietue/seewkRunner
 
-3. make and run 
+2. install tools
+```
+seewkInit
+```
+
+3. install dependency
+```
+vcpkg install --x-feature=client
+```
+4. make and run 
 ```
 seewk make
 ```
@@ -14,8 +19,8 @@ seewk make
 seewk start
 ```
 
-used tools:
- msvc 2022
- cmake
- vcpkg
- ninja 
+## used tools:
+- msvc 2022
+- cmake
+- vcpkg
+- ninja 
