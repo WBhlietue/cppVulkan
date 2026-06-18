@@ -5,11 +5,11 @@
 
 struct alignas(16) MaterialUBO
 {
-    glm::vec4 color;
-    glm::vec2 pos;
-    glm::vec2 size;
-    float rotation;
-    float borderRadius;
+    glm::vec4 color = {1.0f, 1.0f, 1.0f, 1.0f};
+    glm::vec2 pos = {0,0};
+    glm::vec2 size = {100,100};
+    float rotation = 0;
+    float borderRadius = 0;
     float padding[3];
     int textureID = -1;
 };

@@ -31,10 +31,12 @@
 #include <core/classes/graphicPipeline.h>
 
 #include <core/vulkan/instance.hpp>
+
 #include <core/vulkan/window.hpp>
 #include <core/vulkan/surface.hpp>
 #include <core/vulkan/log.hpp>
 #include <core/vulkan/device.hpp>
+#include <core/interface/iwindow.hpp>
 
 // #include<core/vulkan/vulkanCore.hpp>
 
@@ -103,7 +105,7 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class AppWindow
+class AppWindow : public IWindow
 {
 public:
     AppWindow() : surface(window)
@@ -146,11 +148,15 @@ public:
         textureManager.LoadTexture(path);
         return textureManager.textures.size() - 1;
     }
-    void Loop()
+    void Loop() override
     {
         glfwPollEvents();
         drawFrame();
         // mainLoop();
+    }
+    bool isWindow() override
+    {
+        return !glfwWindowShouldClose(window.getWindow());
     }
 
     Window window;
@@ -232,15 +238,15 @@ private:
         return mesh;
     }
 
-    void DrawObject(VkCommandBuffer commandBuffer, VKObject object)
+    void DrawObject(VkCommandBuffer commandBuffer, VKObject &object)
     {
-        VkBuffer vertexBuffers[] = {object.mesh.vBuffer};
+
+        VkBuffer vertexBuffers[] = {squareMesh.vBuffer};
         VkDeviceSize offset[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offset);
-
-        vkCmdBindIndexBuffer(commandBuffer, object.mesh.iBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+        vkCmdBindIndexBuffer(commandBuffer, squareMesh.iBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline.pipelineLayout, 0, 1, &graphicPipeline.descriptorSet, 0, nullptr);
+
         ShaderConst sConst = {};
         sConst.id = object.id;
         sConst.screen_height = Height;
@@ -254,7 +260,7 @@ private:
         sConst.textureID = object.material.textureID;
         vkCmdPushConstants(commandBuffer, graphicPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderConst), &sConst);
 
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.mesh.indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(squareMesh.indices.size()), 1, 0, 0, 0);
     }
 
     void uploadToDevice(void *srcData, VkDeviceSize size, VkBuffer &dstBuffer, VkDeviceMemory &dstBufferMemory)
@@ -318,7 +324,7 @@ private:
     void load()
     {
         textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
-        LoadTextures();
+        // LoadTextures();
         graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
         createFramebuffers();
         createCommandBuffers();
@@ -338,7 +344,7 @@ private:
             mousePositionX -= Width / 2;
             mousePositionY -= Height / 2;
             drawFrame();
-            OnUpdate(deltaTime.count());
+            // OnUpdate(deltaTime.count());
         }
 
         vkDeviceWaitIdle(device);
@@ -717,9 +723,13 @@ private:
         scissor.offset = {0, 0};
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        for (const auto &obj : vkObject)
+        // for (const auto &obj : vkObject){
+        //     DrawObject(commandBuffer, obj);
+        // }
+        auto &objs = GetObjects();
+        for (int i = 0; i < objs.size(); i++)
         {
-            DrawObject(commandBuffer, obj);
+            DrawObject(commandBuffer, objs[i]->GetVK());
         }
 
         vkCmdEndRenderPass(commandBuffer);
@@ -1018,20 +1028,20 @@ private:
 //     }
 // }
 
-class WindowManager
-{
-public:
-    void AddWindow(AppWindow *window)
-    {
-        windows.push_back(window);
-    }
-    std::vector<AppWindow *> &GetWindows()
-    {
-        return windows;
-    }
+// class WindowManager
+// {
+// public:
+//     void AddWindow(AppWindow *window)
+//     {
+//         windows.push_back(window);
+//     }
+//     std::vector<AppWindow *> &GetWindows()
+//     {
+//         return windows;
+//     }
 
-private:
-    std::vector<AppWindow *> windows;
-};
+// private:
+//     std::vector<AppWindow *> windows;
+// };
 
-WindowManager &GetWindowManager();
+// WindowManager &GetWindowManager();

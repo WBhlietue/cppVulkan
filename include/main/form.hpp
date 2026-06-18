@@ -5,7 +5,10 @@
 #include <enter.h>
 #include <vector>
 #include <core/vulkan/appWindow.hpp>
+#include<core/main/windowManager.hpp>
 
+#include<core/main/seewkObject.hpp>
+#include<core/interface/iwindow.hpp>
 namespace seewk::main
 {
     static int objectID = 0;
@@ -14,16 +17,12 @@ namespace seewk::main
         NO_UPDATE,
         USE_UPDATE
     };
-    class Form
+    class Form: public AppWindow
     {
     public:
         FormType type = FormType::USE_UPDATE;
 
 
-        Form()
-        {
-            // OnLoad();
-        }
 
         void Show()
         {
@@ -39,20 +38,22 @@ namespace seewk::main
             object.y = y;
             object.color = color;
             object.borderRadius = borderRadius;
-            wind.AddObject(object);
+            AppWindow::AddObject(object);
             return object;
         }
         void Close(){
-            delete this;
+            // delete this;
         }
+
+        SwkObject CreateObject(){
+            return IWindow::CreateSeewkObject();
+        }
+
 
     private:
         std::vector<int> objects;
-        AppWindow wind;
-
+        // AppWindow wind ;
     protected:
-        virtual void OnLoad() = 0;
         virtual void OnShow() {}
-        virtual void OnUpdate() {}
     };
 }

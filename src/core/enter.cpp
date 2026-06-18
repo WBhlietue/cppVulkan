@@ -3,6 +3,8 @@
 #include<enter.h>
 #include<main.h>
 
+// import seewk.VulkanCore;
+
 int main()
 {
     seewk::core::vulkan::Log::print("program start");

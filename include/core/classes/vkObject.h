@@ -8,13 +8,15 @@
 #include "materialUBO.h"
 #include "mesh.h"
 
+static int vkObjectIdIncrease = 0;
+
 struct VKObject
 {
     Mesh mesh;
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformMemory;
     MaterialUBO material;
-    int id;
+    int id = vkObjectIdIncrease++;
 
     void Destroy(VkDevice device);
     void SetTexture(int textureID);

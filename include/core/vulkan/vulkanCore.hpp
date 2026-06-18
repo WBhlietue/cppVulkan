@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/vulkan/appWindow.hpp>
+#include<core/main/windowManager.hpp>
 
 class VulkanCore
 {
@@ -11,7 +12,7 @@ public:
         // windows[0]->Loop();
         auto lastTime = std::chrono::high_resolution_clock::now();
         const float targetFrameTime = 1.0f / 60.0f;
-        while (!glfwWindowShouldClose(windows[0]->window.getWindow()))
+        while (seewk::WindowManager::IsWindow())
         {
             
             auto currentTime = std::chrono::high_resolution_clock::now();
@@ -20,11 +21,11 @@ public:
             
             lastTime = currentTime;
             
-            
-            for (int i = 0; i < windows.size(); i++)
-            {
-                windows[i]->Loop();
-            }
+            seewk::WindowManager::Loop(deltaTime.count());
+            // for (int i = 0; i < windows.size(); i++)
+            // {
+            //     windows[i]->Loop();
+            // }
         }
 
         // vkDeviceWaitIdle(device);
@@ -35,8 +36,8 @@ public:
     // }
 
 private:
-    WindowManager &manager = GetWindowManager();
-    std::vector<AppWindow *> &windows = manager.GetWindows();
+    // WindowManager &manager = GetWindowManager();
+    // std::vector<AppWindow *> &windows = manager.GetWindows();
 
     //     std::vector<AppWindow> windows;
 };
