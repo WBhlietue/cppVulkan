@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.28)
 
 set(PROJECT_NAME Test)
 
@@ -16,13 +16,14 @@ endif()
 
 file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/src/*.ixx")
 file(GLOB_RECURSE CPP_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
-#file(GLOB_RECURSE CPP_OTHER "${CMAKE_SOURCE_DIR}/vcpkg_installed/*.cppm")
+
 
 
 find_package(Vulkan REQUIRED) 
 find_package(glfw3 REQUIRED) 
 find_package(Freetype REQUIRED)
 
+#add_library(${PROJECT_NAME} STATIC   ${CPP_SOURCES}   ${MODULE_SOURCES})
 
 add_executable(${PROJECT_NAME} ${CPP_SOURCES} ${MODULE_SOURCES})
 
@@ -35,8 +36,12 @@ target_sources(${PROJECT_NAME}
     #${CPP_OTHER}
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Freetype::Freetype)
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} PUBLIC Freetype::Freetype)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${PROJECT_NAME} 
+    PUBLIC 
+    ${CMAKE_SOURCE_DIR}/include
+)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+#target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)

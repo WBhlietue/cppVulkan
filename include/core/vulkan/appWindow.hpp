@@ -105,11 +105,14 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class AppWindow : public IWindow
+class AppWindow
 {
+    IWindow *iWindow = nullptr;
+
 public:
-    AppWindow() : surface(window)
+    AppWindow(IWindow *w) : surface(window)
     {
+        iWindow = w;
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
         initVulkan();
@@ -148,13 +151,13 @@ public:
         textureManager.LoadTexture(path);
         return textureManager.textures.size() - 1;
     }
-    void Loop() override
+    void Loop() 
     {
         glfwPollEvents();
         drawFrame();
         // mainLoop();
     }
-    bool isWindow() override
+    bool isWindow() 
     {
         return !glfwWindowShouldClose(window.getWindow());
     }
@@ -702,7 +705,7 @@ private:
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        VkClearValue clearColor = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
@@ -726,7 +729,7 @@ private:
         // for (const auto &obj : vkObject){
         //     DrawObject(commandBuffer, obj);
         // }
-        auto &objs = GetObjects();
+        auto &objs = iWindow->GetObjects();
         for (int i = 0; i < objs.size(); i++)
         {
             DrawObject(commandBuffer, objs[i]->GetVK());

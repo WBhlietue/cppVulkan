@@ -1,4 +1,4 @@
-#pragma once;
+#pragma once
 #include <core/types.hpp>
 #include <core/classes/vkObject.h>
 
