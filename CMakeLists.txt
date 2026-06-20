@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 set(PROJECT_NAME Test)
 
 project(${PROJECT_NAME})
@@ -13,6 +16,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
     add_compile_options(/experimental:module)
 endif()
+
 
 file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/src/*.ixx")
 file(GLOB_RECURSE CPP_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
@@ -35,6 +39,29 @@ target_sources(${PROJECT_NAME}
     ${MODULE_SOURCES}
     #${CPP_OTHER}
 )
+target_precompile_headers(${PROJECT_NAME} PRIVATE
+    <vector>
+    <string>
+    <iostream>
+    <vulkan/vulkan.hpp>
+    <glm/glm.hpp>
+    <GLFW/glfw3.h>
+    <iostream>
+    <fstream>
+    <stdexcept>
+    <algorithm>
+    <vector>
+    <cstring>
+    <cstdlib>
+    <cstdint>
+    <limits>
+    <array>
+    <optional>
+    <set>
+    <chrono>
+    <thread>
+)
+
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Freetype::Freetype)
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw)

@@ -1,5 +1,6 @@
 #include <seewk.hpp>
 #include <cmath>
+import test;
 
 const float PI = 3.1415926;
 
@@ -8,7 +9,7 @@ class Form1 : public seewk::main::Form
 public:
     int angle = 0;
     int radius = 200;
-    int speed = 2;
+    int speed = 10;
     int border = 30;
     int borderSpeed = 1;
     float r = 0, g = 0, b = 0;
@@ -19,6 +20,7 @@ public:
 
     void OnLoad() override
     {
+
         obj = &CreateObject()
                    .SetPosition(Vec2(0, 0))
                    .SetSize(Vec2(100, 100))
@@ -60,6 +62,7 @@ Form1 form = seewk::WindowManager::CreateWindow<Form1>();
 
 void OnStart()
 {
+    RunTest();
     std::cout << "program start\n";
 }
 

@@ -1,0 +1,23 @@
+{
+    "name": "cppvulkan",
+    "version": "1.0.0",
+    "description": "1. use this tool to run project simple",
+    "scripts": {
+        "make": "seewk make",
+        "start": "ninja -C build && build\\Test.exe",
+        "dev": "nodemon --watch src --ext cpp,hpp --exec npm start"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/WBhlietue/cppVulkan.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/WBhlietue/cppVulkan/issues"
+    },
+    "homepage": "https://github.com/WBhlietue/cppVulkan#readme",
+    "dependencies": {
+        "nodemon": "^3.1.14"
+    }
+}

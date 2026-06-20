@@ -116,11 +116,13 @@ public:
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
         initVulkan();
+        Log::print("naniiiiiii");
         Init();
         run();
     }
     void run()
     {
+        Log::print("run");
         squareMesh = createSquareMesh();
         // OnStart();
         load();
@@ -322,15 +324,17 @@ private:
         createRenderPass();
         createCommandPool();
         createSyncObjects();
-        Log::print("end init vulkan");
+        Log::print("end init vulkan desu");
     }
     void load()
     {
+        Log::print("load");
         textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
         // LoadTextures();
         graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
         createFramebuffers();
         createCommandBuffers();
+        Log::print("endload");
     }
 
     void mainLoop()

@@ -46,3 +46,5 @@ Thumbs.db
 *.d
 
 *.zip
+
+node_modules
