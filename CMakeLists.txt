@@ -4,9 +4,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 set(PROJECT_NAME Test)
+set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+
 
 project(${PROJECT_NAME})
-
 
 set(CMAKE_C_COMPILER cl)
 set(CMAKE_CXX_COMPILER cl)
@@ -63,8 +64,11 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE
 )
 
 
+target_link_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows-static/lib
+)
 target_link_libraries(${PROJECT_NAME} PUBLIC Freetype::Freetype)
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw3)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 target_include_directories(${PROJECT_NAME} 
     PUBLIC 
