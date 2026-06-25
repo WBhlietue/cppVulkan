@@ -4,9 +4,8 @@
     "description": "1. use this tool to run project simple",
     "scripts": {
         "make": "seewk make",
-        "start": "ninja -C build && build\\Test.exe",
-        "dev": "nodemon --watch src --ext cpp,hpp --exec npm start",
-        "test":"cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=%vclocation% -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -G Ninja"
+        "start": "seewk start",
+        "dev": "nodemon --watch src --ext cpp,hpp --exec npm start"
     },
     "repository": {
         "type": "git",
