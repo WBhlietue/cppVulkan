@@ -1,9 +1,8 @@
-#pragma once
-
+module;
 #include <core/vulkan/appWindow.hpp>
 #include<core/main/windowManager.hpp>
-
-class VulkanCore
+export module VulkanCore;
+export class VulkanCore
 {
 public:
     // AppWindow win;
@@ -42,7 +41,7 @@ private:
     //     std::vector<AppWindow> windows;
 };
 
-VulkanCore &getCore()
+export VulkanCore &getCore()
 {
     static VulkanCore app;
     return app;

@@ -7,6 +7,8 @@
 #include <fstream>
 #include "vertex.h"
 #include <string.h>
+#include <frag.h>
+#include <vert.h>
 
 class GraphicPipeline
 {
@@ -47,7 +49,7 @@ public:
     void BindTextures(VkDevice device)
     {
         std::vector<VkDescriptorImageInfo> imageInfos;
-        for (const auto& tex : t)
+        for (const auto &tex : t)
         {
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -78,6 +80,21 @@ public:
 
 private:
     std::vector<Texture> t;
+    VkShaderModule createShaderModule(const unsigned char *data, size_t size, VkDevice device)
+    {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = size;
+        createInfo.pCode = reinterpret_cast<const uint32_t *>(data);
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create shader module!");
+        }
+        return shaderModule;
+    }
+
     VkShaderModule createShaderModule(const std::vector<char> &code, VkDevice device)
     {
         VkShaderModuleCreateInfo createInfo{};
@@ -157,11 +174,14 @@ private:
     }
     void createGraphicsPipeline(VkDevice device, VkRenderPass renderPass, std::string shaderFrag, std::string shaderVert)
     {
-        auto vertShaderCode = readFile(shaderVert);
-        auto fragShaderCode = readFile(shaderFrag);
+        // auto vertShaderCode = readFile(shaderVert);
+        // auto fragShaderCode = readFile(shaderFrag);
 
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, device);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, device);
+        // VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, device);
+        // VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, device);
+
+        VkShaderModule vertShaderModule = createShaderModule(__shader_test_vert_spv, __shader_test_vert_spv_len, device);
+        VkShaderModule fragShaderModule = createShaderModule(__shader_test_frag_spv, __shader_test_frag_spv_len, device);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

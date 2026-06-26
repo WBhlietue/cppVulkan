@@ -19,7 +19,7 @@ if(MSVC)
 endif()
 
 
-file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/src/*.ixx")
+file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/module/*.ixx")
 file(GLOB_RECURSE CPP_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 
@@ -73,6 +73,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 target_include_directories(${PROJECT_NAME} 
     PUBLIC 
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/shader/include
 )
 
 #target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)

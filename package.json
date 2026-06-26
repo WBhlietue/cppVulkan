@@ -5,7 +5,9 @@
     "scripts": {
         "make": "seewk make",
         "start": "seewk start",
-        "dev": "nodemon --watch src --ext cpp,hpp --exec npm start"
+        "compile":"seewk compile",
+        "view":"seewk run",
+        "dev": "nodemon --watch src --ext cpp,hpp --exec npm run compile"
     },
     "repository": {
         "type": "git",
