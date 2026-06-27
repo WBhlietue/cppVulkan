@@ -3,6 +3,7 @@
 #include <core/classes/vkObject.h>
 #include <functional>
 
+
 // using S_Object = SeewkObject&;
 constexpr int MOUSE_ENTER = 0;
 constexpr int MOUSE_STAY = 1;
@@ -34,6 +35,8 @@ class SeewkObject
     int mouseDownX;
     int mouseDownY;
     int clickThreshold = 10;
+    bool isMouseDown = false;
+    int downedMouse = -1;
 
 public:
     SeewkObject() {}
@@ -60,6 +63,7 @@ public:
     }
     bool MouseStay()
     {
+
         if (onMouseStay)
         {
             onMouseStay();
@@ -69,6 +73,8 @@ public:
     }
     bool MouseDown(int button, int mX, int mY)
     {
+        isMouseDown = true;
+        downedMouse = button;
         if (onMouseDown)
         {
             onMouseDown(button);
@@ -80,6 +86,7 @@ public:
     }
     bool MouseUp(int button, int mX, int mY)
     {
+        isMouseDown = false;
         if (abs(mouseDownX - mX) < clickThreshold && abs(mouseDownY - mY) < clickThreshold)
         {
             return MouseClick(button);
@@ -100,11 +107,11 @@ public:
         }
         return false;
     }
-    bool MouseDrag(int button)
+    bool MouseDrag()
     {
         if (onMouseDrag)
         {
-            onMouseDrag(button);
+            onMouseDrag(downedMouse);
             return true;
         }
         return false;
@@ -120,6 +127,10 @@ public:
     }
     int Actions(Vec2 point)
     {
+        if (isMouseDown)
+        {
+            return MouseDrag();
+        }
         bool result = AABBDetect(point);
         if (result)
         {
@@ -143,10 +154,12 @@ public:
                     return MOUSE_EXIT;
             }
         }
+        
         return MOUSE_NONE;
     }
     int ActionsButton(Vec2 point, int button, int action, int mods)
     {
+
         if (AABBDetect(point))
         {
             if (action == GLFW_PRESS)
@@ -160,6 +173,7 @@ public:
                     return MOUSE_UP;
             }
         }
+        
         return MOUSE_NONE;
     }
     Vec2 GetPosition()

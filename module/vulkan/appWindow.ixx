@@ -194,6 +194,10 @@ public:
     {
         return window;
     }
+    Vec2 GetMousePosition()
+    {
+        return Vec2(mousePositionX, mousePositionY);
+    }
 
 private:
     std::vector<VKObject> vkObject;

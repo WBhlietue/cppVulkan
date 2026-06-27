@@ -1,8 +1,17 @@
 #include <cmath>
 #include <core/main/seewkObject.hpp>
+#include <random>
 import seewk;
 
 const float PI = 3.1415926;
+
+float GetRandomFloat(float min, float max)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(gen);
+}
 
 class Form1 : public seewk::main::Form
 {
@@ -17,8 +26,10 @@ public:
     float speedG = 0.17f;
     float speedB = 0.29f;
     SeewkObject *obj = nullptr;
+    SeewkObject *obj2 = nullptr;
 
     bool change = false;
+    Vec2 obj2PosOffset;
 
     void OnLoad() override
     {
@@ -31,16 +42,24 @@ public:
                    .SetMouseEnter([this]()
                                   { this->change = true; })
                    .SetMouseExit([this]()
-                                 { this->change = false; })
-                   .SetClick([this](int button)
-                             { std::cout << "Click 1" << std::endl; });
-        CreateObject()
-            .SetPosition(Vec2(100, 0))
-            .SetSize(Vec2(200, 200))
-            .SetColor(Color(r, g, b, 1))
-            .SetBorderRadius(border)
-            .SetClick([this](int button)
-                      { std::cout << "Click 2" << std::endl; });
+                                 { this->change = false; });
+
+        obj2 = &CreateObject()
+                    .SetPosition(Vec2(100, 0))
+                    .SetSize(Vec2(200, 200))
+                    .SetColor(Color(r, g, b, 1))
+                    .SetBorderRadius(border)
+                    .SetClick([this](int button)
+                              { this->obj2->SetColor({GetRandomFloat(0.0f, 1.0f),
+                                                      GetRandomFloat(0.0f, 1.0f),
+                                                      GetRandomFloat(0.0f, 1.0f),
+                                                      1}); })
+                    .SetMouseDown([this](int button)
+                                  { this->obj2PosOffset = GetMousePosition() - this->obj2->GetPosition(); })
+                    .SetDrag([this](int button)
+                             {
+                                Vec2 mousePosition = GetMousePosition();
+                                this->obj2->SetPosition(mousePosition - this->obj2PosOffset); });
     }
     void OnLoop(float deltaTime) override
     {

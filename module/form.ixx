@@ -61,6 +61,11 @@ namespace seewk::main
         {
             return IWindow::swkObjectCreate();
         }
+        Vec2 GetMousePosition()
+        {
+            return appWindow.GetMousePosition();
+        }
+
 
     private:
         std::vector<int> objects;
