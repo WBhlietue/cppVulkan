@@ -30,10 +30,17 @@ public:
                    .SetBorderRadius(border)
                    .SetMouseEnter([this]()
                                   { this->change = true; })
-                   .SetMouseStay([]()
-                                  { std::cout << "stay\n"; })
                    .SetMouseExit([this]()
-                                  { this->change = false; });
+                                 { this->change = false; })
+                   .SetMouseUp([this](int button)
+                             { std::cout << "Click 1" << std::endl; });
+        CreateObject()
+            .SetPosition(Vec2(100, 0))
+            .SetSize(Vec2(200, 200))
+            .SetColor(Color(r, g, b, 1))
+            .SetBorderRadius(border)
+            .SetMouseUp([this](int button)
+                      { std::cout << "Click 2" << std::endl; });
     }
     void OnLoop(float deltaTime) override
     {
@@ -42,7 +49,8 @@ public:
         // int x = sin(angle * PI / 180.0) * radius;
         // int y = cos(angle * PI / 180.0) * radius;
         // obj->SetPosition(Vec2(x, y));
-        if(!change){
+        if (!change)
+        {
             return;
         }
         border += borderSpeed;

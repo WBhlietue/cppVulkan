@@ -43,8 +43,6 @@ import Main;
 
 using namespace seewk::core::vulkan;
 
-// #define STB_IMAGE_IMPLEMENTATION
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char *> deviceExtensions = {
@@ -52,8 +50,6 @@ const std::vector<const char *> deviceExtensions = {
     VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME};
 
 const bool enableValidationLayers = false;
-
-// std::vector<Object_OnClick> onClickCallbacks;
 
 struct alignas(16) ShaderConst
 {
@@ -79,15 +75,6 @@ public:
     }
 };
 
-// void Object_OnClick::Check(double x, double y)
-// {
-//     MaterialUBO material = vkObject[id].material;
-//     if (x > material.pos.x - material.size.x / 2 && x < material.pos.x + material.size.x / 2 && y > material.pos.y - material.size.y / 2 && y < material.pos.y + material.size.y / 2)
-//     {
-//         callback();
-//     }
-// }
-
 export struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
@@ -109,6 +96,36 @@ export struct SwapChainSupportDetails
 export class AppWindow
 {
     IWindow *iWindow = nullptr;
+    SeewkObject *onFocused = nullptr;
+    SeewkObject *onClicked = nullptr;
+    void MouseMove()
+    {
+        auto &objects = iWindow->GetObjects();
+        for (int i = 0; i < objects.size(); i++)
+        {
+            int result = objects[i]->Actions({mousePositionX, mousePositionY});
+            // if (result == MOUSE_ENTER)
+            // {
+            //     if (onFocused)
+            //     {
+            //         onFocused->MouseExit();
+            //     }
+            //     onFocused = objects[i].get();
+            // }
+        }
+    }
+    void MouseButton(int button, int action, int mods)
+    {
+        auto &objects = iWindow->GetObjects();
+        for (int i = objects.size() - 1; i >= 0; i--)
+        {
+            int result = objects[i]->ActionsButton({mousePositionX, mousePositionY}, button, action, mods);
+            if (result != MOUSE_NONE)
+            {
+                break;
+            }
+        }
+    }
 
 public:
     AppWindow(IWindow *w) : surface(window)
@@ -124,6 +141,7 @@ public:
     }
     void run()
     {
+
         Log::print("run");
         squareMesh = createSquareMesh();
         // OnStart();
@@ -161,15 +179,9 @@ public:
         glfwGetCursorPos(window.getWindow(), &mousePositionX, &mousePositionY);
         mousePositionX -= Width / 2;
         mousePositionY -= Height / 2;
-        CheckObjectsActions();
+        MouseMove();
         drawFrame();
         // mainLoop();
-    }
-    void CheckObjectsActions(){
-        auto& objects = iWindow->GetObjects();
-        for(int i = 0; i < objects.size(); i++){
-           objects[i]->Actions({mousePositionX, mousePositionY});
-        }
     }
     bool isWindow()
     {
@@ -235,6 +247,7 @@ private:
     Mesh squareMesh;
     void Init()
     {
+        glfwSetWindowUserPointer(window.getWindow(), this);
     }
     Mesh createSquareMesh()
     {
@@ -305,11 +318,7 @@ private:
     static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
     {
         auto app = reinterpret_cast<AppWindow *>(glfwGetWindowUserPointer(window));
-        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-        {
-
-            app->OnClick();
-        }
+        app->MouseButton(button, action, mods);
     }
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
     {
@@ -875,6 +884,7 @@ private:
 
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes)
     {
+        // return VK_PRESENT_MODE_IMMEDIATE_KHR;
         for (const auto &availablePresentMode : availablePresentModes)
         {
             if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)

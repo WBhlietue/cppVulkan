@@ -4,7 +4,14 @@
 #include <functional>
 
 // using S_Object = SeewkObject&;
-
+constexpr int MOUSE_ENTER = 0;
+constexpr int MOUSE_STAY = 1;
+constexpr int MOUSE_EXIT = 2;
+constexpr int MOUSE_DOWN = 3;
+constexpr int MOUSE_DRAG = 4;
+constexpr int MOUSE_UP = 5;
+constexpr int MOUSE_CLICK = 6;
+constexpr int MOUSE_NONE = 7;
 class SeewkObject
 {
     int id;
@@ -19,22 +26,79 @@ class SeewkObject
     std::function<void()> onMouseEnter = []() {};
     std::function<void()> onMouseExit = []() {};
     std::function<void()> onMouseStay = []() {};
+    std::function<void(int)> onMouseDown = [](int button) {};
+    std::function<void(int)> onMouseUp = [](int button) {};
+    std::function<void(int)> onMouseClick = [](int button) {};
+    std::function<void(int)> onMouseDrag = [](int button) {};
     bool isMouseEnter = false;
 
 public:
     SeewkObject() {}
     ~SeewkObject() {}
-    void MouseEnter()
+    bool MouseEnter()
     {
-        onMouseEnter();
+        isMouseEnter = true;
+        if (onMouseEnter)
+        {
+            onMouseEnter();
+            return true;
+        }
+        return false;
     }
-    void MouseExit()
+    bool MouseExit()
     {
-        onMouseExit();
+        isMouseEnter = false;
+        if (onMouseExit)
+        {
+            onMouseExit();
+            return true;
+        }
+        return false;
     }
-    void MouseStay()
+    bool MouseStay()
     {
-        onMouseStay();
+        if (onMouseStay)
+        {
+            onMouseStay();
+            return true;
+        }
+        return false;
+    }
+    bool MouseDown(int button)
+    {
+        if (onMouseDown)
+        {
+            onMouseDown(button);
+            return true;
+        }
+        return false;
+    }
+    bool MouseUp(int button)
+    {
+        if (onMouseUp)
+        {
+            onMouseUp(button);
+            return true;
+        }
+        return false;
+    }
+    bool MouseClick(int button)
+    {
+        if (onMouseClick)
+        {
+            onMouseClick(button);
+            return true;
+        }
+        return false;
+    }
+    bool MouseDrag(int button)
+    {
+        if (onMouseDrag)
+        {
+            onMouseDrag(button);
+            return true;
+        }
+        return false;
     }
     bool AABBDetect(Vec2 point)
     {
@@ -45,29 +109,49 @@ public:
         }
         return false;
     }
-    void Actions(Vec2 point)
+    int Actions(Vec2 point)
     {
         bool result = AABBDetect(point);
         if (result)
         {
             if (isMouseEnter)
             {
-                MouseStay();
+                if (MouseStay())
+                    return MOUSE_STAY;
             }
             else
             {
-                isMouseEnter = true;
-                MouseEnter();
+
+                if (MouseEnter())
+                    return MOUSE_ENTER;
             }
         }
         else
         {
             if (isMouseEnter)
             {
-                isMouseEnter = false;
-                MouseExit();
+                if (MouseExit())
+                    return MOUSE_EXIT;
             }
         }
+        return MOUSE_NONE;
+    }
+    int ActionsButton(Vec2 point, int button, int action, int mods)
+    {
+        if (AABBDetect(point))
+        {
+            if (action == GLFW_PRESS)
+            {
+                if (MouseDown(button))
+                    return MOUSE_DOWN;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                if (MouseUp(button))
+                    return MOUSE_UP;
+            }
+        }
+        return MOUSE_NONE;
     }
     Vec2 GetPosition()
     {
@@ -104,6 +188,26 @@ public:
     SeewkObject &SetMouseStay(std::function<void()> f)
     {
         onMouseStay = f;
+        return *this;
+    }
+    SeewkObject &SetMouseUp(std::function<void(int)> f)
+    {
+        onMouseUp = f;
+        return *this;
+    }
+    SeewkObject &SetMouseDown(std::function<void(int)> f)
+    {
+        onMouseDown = f;
+        return *this;
+    }
+    SeewkObject &SetClick(std::function<void(int)> f)
+    {
+        onMouseClick = f;
+        return *this;
+    }
+    SeewkObject &SetDrag(std::function<void(int)> f)
+    {
+        onMouseDrag = f;
         return *this;
     }
     Color GetColor()
