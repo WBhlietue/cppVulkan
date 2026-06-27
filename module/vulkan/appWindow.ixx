@@ -168,9 +168,7 @@ public:
     void CheckObjectsActions(){
         auto& objects = iWindow->GetObjects();
         for(int i = 0; i < objects.size(); i++){
-            if(objects[i]->AABBDetect(Vec2(mousePositionX, mousePositionY))){
-                objects[i]->MouseEnter();
-            }
+           objects[i]->Actions({mousePositionX, mousePositionY});
         }
     }
     bool isWindow()
