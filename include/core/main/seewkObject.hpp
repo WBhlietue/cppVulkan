@@ -31,6 +31,9 @@ class SeewkObject
     std::function<void(int)> onMouseClick = [](int button) {};
     std::function<void(int)> onMouseDrag = [](int button) {};
     bool isMouseEnter = false;
+    int mouseDownX;
+    int mouseDownY;
+    int clickThreshold = 10;
 
 public:
     SeewkObject() {}
@@ -64,17 +67,23 @@ public:
         }
         return false;
     }
-    bool MouseDown(int button)
+    bool MouseDown(int button, int mX, int mY)
     {
         if (onMouseDown)
         {
             onMouseDown(button);
+            mouseDownX = mX;
+            mouseDownY = mY;
             return true;
         }
         return false;
     }
-    bool MouseUp(int button)
+    bool MouseUp(int button, int mX, int mY)
     {
+        if (abs(mouseDownX - mX) < clickThreshold && abs(mouseDownY - mY) < clickThreshold)
+        {
+            return MouseClick(button);
+        }
         if (onMouseUp)
         {
             onMouseUp(button);
@@ -142,12 +151,12 @@ public:
         {
             if (action == GLFW_PRESS)
             {
-                if (MouseDown(button))
+                if (MouseDown(button, point.x, point.y))
                     return MOUSE_DOWN;
             }
             else if (action == GLFW_RELEASE)
             {
-                if (MouseUp(button))
+                if (MouseUp(button, point.x, point.y))
                     return MOUSE_UP;
             }
         }

@@ -32,14 +32,14 @@ public:
                                   { this->change = true; })
                    .SetMouseExit([this]()
                                  { this->change = false; })
-                   .SetMouseUp([this](int button)
+                   .SetClick([this](int button)
                              { std::cout << "Click 1" << std::endl; });
         CreateObject()
             .SetPosition(Vec2(100, 0))
             .SetSize(Vec2(200, 200))
             .SetColor(Color(r, g, b, 1))
             .SetBorderRadius(border)
-            .SetMouseUp([this](int button)
+            .SetClick([this](int button)
                       { std::cout << "Click 2" << std::endl; });
     }
     void OnLoop(float deltaTime) override
