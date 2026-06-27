@@ -1,7 +1,7 @@
 module;
-#include <core/vulkan/appWindow.hpp>
-#include<core/main/windowManager.hpp>
 export module VulkanCore;
+import AppWindow;
+import WindowManager;
 export class VulkanCore
 {
 public:

@@ -1,5 +1,5 @@
 #include<core/classes/VKTextureManager.h>
-#include<iostream>
+
 
 void VKTextureManager::LoadTexture(const std::string& path) {
     // int texWidth, texHeight, texChannels;
@@ -122,7 +122,7 @@ VkImageView VKTextureManager::createImageView(VkImage image, VkFormat format)
     VkImageView imageView;
     if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
    
-        std::cout << "imageview error" << std::endl;
+        // std::cout << "imageview error" << std::endl;
     }
 
     return imageView;
@@ -179,7 +179,7 @@ void VKTextureManager::transitionImageLayout(
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else {
-        std::cout << "image layuot no support" << std::endl;
+        // std::cout << "image layuot no support" << std::endl;
        
     }
 
@@ -263,7 +263,7 @@ void VKTextureManager::createBuffer(
 
     if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 
-        std::cout << "buffer error" << std::endl;
+        // std::cout << "buffer error" << std::endl;
     }
 
     VkMemoryRequirements memRequirements;
@@ -276,7 +276,7 @@ void VKTextureManager::createBuffer(
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
     
-        std::cout << "buffer memory error" << std::endl;
+        // std::cout << "buffer memory error" << std::endl;
     }
 
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
@@ -293,5 +293,5 @@ uint32_t VKTextureManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyF
             return i;
         }
     }
-    std::cout << "memory type error" << std::endl;
+    // std::cout << "memory type error" << std::endl;
 }

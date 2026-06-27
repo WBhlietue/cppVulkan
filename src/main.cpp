@@ -1,9 +1,8 @@
-#include <seewk.hpp>
 #include <cmath>
-import test;
-import vulkanBase;
-const float PI = 3.1415926;
+#include<core/main/seewkObject.hpp>
+import seewk;
 
+const float PI = 3.1415926;
 
 class Form1 : public seewk::main::Form
 {
@@ -61,9 +60,9 @@ public:
 
 Form1 form = seewk::WindowManager::CreateWindow<Form1>();
 
+
 void OnStart()
 {
-    RunTest();
     std::cout << "program start\n";
 }
 

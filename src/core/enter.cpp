@@ -1,8 +1,8 @@
 // #include<core/vulkan/vulkanCore.hpp>
 #include<core/vulkan/log.hpp>
 #include<enter.h>
-#include<main.h>
 import VulkanCore;
+import Main;
 // import seewk.VulkanCore;
 
 int main()

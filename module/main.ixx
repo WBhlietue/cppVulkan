@@ -1,11 +1,9 @@
-#ifndef main_h  
-#define main_h
-
+module;
 #include<string>
+
+export module Main;
 // void LoadTextures();
-void OnStart();
-void OnOver();
+export void OnStart();
+export void OnOver();
 // void OnUpdate(float deltaTime);
 extern std::string mainPage;
-
-#endif

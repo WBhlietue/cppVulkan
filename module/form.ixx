@@ -1,14 +1,15 @@
-#pragma once
+module;
 #include <glm/glm.hpp>
 #include <enter.h>
 #include <functional>
 #include <enter.h>
 #include <vector>
-#include <core/vulkan/appWindow.hpp>
-#include <core/main/windowManager.hpp>
 
 #include <core/main/seewkObject.hpp>
 #include <core/interface/iwindow.hpp>
+export module Form;
+import AppWindow;
+import WindowManager;
 namespace seewk::main
 {
     static int objectID = 0;
@@ -17,7 +18,7 @@ namespace seewk::main
         NO_UPDATE,
         USE_UPDATE
     };
-    class Form : public IWindow
+    export class Form : public IWindow
     {
         AppWindow appWindow;
 

@@ -18,6 +18,10 @@ namespace seewk::core::vulkan
         void setMouseButtonCallback(GLFWmousebuttonfun callback);
         void setPosition(glm::vec2 position);
         glm::vec2 getPosition();
+        void Show(){
+            // Log::print("show window");
+            glfwShowWindow(window_);
+        }
 
     private:
         GLFWwindow *window_;

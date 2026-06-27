@@ -1,13 +1,13 @@
-#pragma once
+module;
 #include <core/interface/iwindow.hpp>
 #include <vector>
 #include <memory>
 #include <concepts>
 #include <core/vulkan/window.hpp>
-
+export module WindowManager;
 namespace seewk
 {
-    class WindowManager
+    export class WindowManager
     {
         static inline std::vector<std::unique_ptr<IWindow>> windows={};
 

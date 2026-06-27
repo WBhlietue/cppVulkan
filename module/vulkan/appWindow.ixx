@@ -1,11 +1,9 @@
-#pragma once
+module;
 
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-
-#include <iostream>
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
@@ -21,7 +19,6 @@
 #include <thread>
 
 #include <core/classes/VKTextureManager.h>
-#include <main.h>
 #include <enter.h>
 
 // #include <stb_image.h>
@@ -39,6 +36,10 @@
 #include <core/interface/iwindow.hpp>
 
 // #include<core/vulkan/vulkanCore.hpp>
+
+export module AppWindow;
+
+import Main;
 
 using namespace seewk::core::vulkan;
 
@@ -68,7 +69,7 @@ struct alignas(16) ShaderConst
     int textureID = -1;
 };
 
-class ObjectManager
+export class ObjectManager
 {
 public:
     static ObjectManager &GetInstance()
@@ -87,7 +88,7 @@ public:
 //     }
 // }
 
-struct QueueFamilyIndices
+export struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
@@ -98,14 +99,14 @@ struct QueueFamilyIndices
     }
 };
 
-struct SwapChainSupportDetails
+export struct SwapChainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-class AppWindow
+export class AppWindow
 {
     IWindow *iWindow = nullptr;
 
@@ -118,6 +119,7 @@ public:
         initVulkan();
         Log::print("naniiiiiii");
         Init();
+        window.Show();
         run();
     }
     void run()
@@ -153,13 +155,13 @@ public:
         textureManager.LoadTexture(path);
         return textureManager.textures.size() - 1;
     }
-    void Loop() 
+    void Loop()
     {
         glfwPollEvents();
         drawFrame();
         // mainLoop();
     }
-    bool isWindow() 
+    bool isWindow()
     {
         return !glfwWindowShouldClose(window.getWindow());
     }
@@ -221,7 +223,9 @@ private:
     VKTextureManager textureManager;
 
     Mesh squareMesh;
-    void Init();
+    void Init()
+    {
+    }
     Mesh createSquareMesh()
     {
         Mesh mesh = {};
@@ -420,10 +424,13 @@ private:
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
         {
             imageCount = swapChainSupport.capabilities.maxImageCount;
@@ -441,6 +448,7 @@ private:
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
         if (indices.graphicsFamily != indices.presentFamily)
@@ -459,13 +467,16 @@ private:
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
 
+        // this line slow 1s
         if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create swap chain!");
         }
 
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+
         swapChainImages.resize(imageCount);
+
         vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
 
         swapChainImageFormat = surfaceFormat.format;

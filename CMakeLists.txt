@@ -31,6 +31,8 @@ find_package(Freetype REQUIRED)
 #add_library(${PROJECT_NAME} STATIC   ${CPP_SOURCES}   ${MODULE_SOURCES})
 
 add_executable(${PROJECT_NAME} ${CPP_SOURCES} ${MODULE_SOURCES})
+#add_executable(${PROJECT_NAME} WIN32 ${CPP_SOURCES} ${MODULE_SOURCES})
+#target_link_options(${PROJECT_NAME} PRIVATE /ENTRY:mainCRTStartup)
 
 
 target_sources(${PROJECT_NAME}
@@ -41,9 +43,8 @@ target_sources(${PROJECT_NAME}
     #${CPP_OTHER}
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE
-    <vector>
+   
     <string>
-    <iostream>
     <vulkan/vulkan.hpp>
     <glm/glm.hpp>
     <GLFW/glfw3.h>

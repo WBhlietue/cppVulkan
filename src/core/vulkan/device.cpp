@@ -2,7 +2,6 @@
 #include <core/vulkan/instance.hpp>
 #include <optional>
 #include <set>
-#include <iostream>
 #include <core/vulkan/log.hpp>
 using namespace seewk::core::vulkan;
 
@@ -193,6 +192,6 @@ vk::Queue Device::getPresentQueue()
 }
 Device::~Device()
 {
-    std::cout << "destroy device" << std::endl;
+    // std::cout << "destroy device" << std::endl;
     device.destroy();
 }
