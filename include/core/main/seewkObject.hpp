@@ -15,10 +15,21 @@ class SeewkObject
     Color color;
     int texture_id;
     VKObject vkObject;
+    
 
 public:
     SeewkObject() {}
     ~SeewkObject() {}
+    void MouseEnter(){
+        std::cout << "enter" << std::endl;
+    }
+    bool AABBDetect(Vec2 point){
+        point += Vec2(width / 2, height / 2);
+        if(point.x > x && point.x < x + width && point.y > y && point.y < y + height){
+            return true;
+        }
+        return false;
+    }
     Vec2 GetPosition()
     {
         return Vec2(x, y);

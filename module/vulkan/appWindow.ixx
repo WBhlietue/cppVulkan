@@ -158,8 +158,20 @@ public:
     void Loop()
     {
         glfwPollEvents();
+        glfwGetCursorPos(window.getWindow(), &mousePositionX, &mousePositionY);
+        mousePositionX -= Width / 2;
+        mousePositionY -= Height / 2;
+        CheckObjectsActions();
         drawFrame();
         // mainLoop();
+    }
+    void CheckObjectsActions(){
+        auto& objects = iWindow->GetObjects();
+        for(int i = 0; i < objects.size(); i++){
+            if(objects[i]->AABBDetect(Vec2(mousePositionX, mousePositionY))){
+                objects[i]->MouseEnter();
+            }
+        }
     }
     bool isWindow()
     {

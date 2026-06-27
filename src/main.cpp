@@ -29,32 +29,33 @@ public:
     }
     void OnLoop(float deltaTime) override
     {
-        angle += speed;
-        int x = sin(angle * PI / 180.0) * radius;
-        int y = cos(angle * PI / 180.0) * radius;
-        obj->SetPosition(Vec2(x, y));
-        border += borderSpeed;
-        if (border < 10 || border > 50)
-        {
-            borderSpeed *= -1;
-        }
-        obj->SetBorderRadius(border);
-        r += speedR;
-        g += speedG;
-        b += speedB;
-        if (r < 0 || r > 1)
-        {
-            speedR *= -1;
-        }
-        if (g < 0 || g > 1)
-        {
-            speedG *= -1;
-        }
-        if (b < 0 || b > 1)
-        {
-            speedB *= -1;
-        }
-        obj->SetColor(Color(r, g, b, 1));
+        std::cout << 1 / deltaTime << std::endl;
+        // angle += speed;
+        // int x = sin(angle * PI / 180.0) * radius;
+        // int y = cos(angle * PI / 180.0) * radius;
+        // obj->SetPosition(Vec2(x, y));
+        // border += borderSpeed;
+        // if (border < 10 || border > 50)
+        // {
+        //     borderSpeed *= -1;
+        // }
+        // obj->SetBorderRadius(border);
+        // r += speedR;
+        // g += speedG;
+        // b += speedB;
+        // if (r < 0 || r > 1)
+        // {
+        //     speedR *= -1;
+        // }
+        // if (g < 0 || g > 1)
+        // {
+        //     speedG *= -1;
+        // }
+        // if (b < 0 || b > 1)
+        // {
+        //     speedB *= -1;
+        // }
+        // obj->SetColor(Color(r, g, b, 1));
     }
 };
 
