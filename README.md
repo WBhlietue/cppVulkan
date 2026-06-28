@@ -1,4 +1,6 @@
 # version: c++ 20
+# now in development is only run in windows with msvc
+# after will add cross platform and multiple compiler support 
 
 1. use this tool to run project simple
 
@@ -9,10 +11,7 @@ https://github.com/WBhlietue/seewkRunner
 seewkInit
 ```
 
-3. install dependency
-```
-vcpkg install --x-feature=client
-```
+3. install dependency is automat install when using ```seewk make```
 4. make and run 
 ```
 seewk make
@@ -21,11 +20,23 @@ seewk make
 seewk start
 ```
 
+# Or you can use npm to run project
+
+for example
+```
+npm run make // make
+npm start // compile and run
+npm run dev // using nodemom to auto compile and run when cpp file changed
+npm run compile // compile project
+npm run view // run exe file
+```
+
 ## used tools:
-- msvc 2022
+- msvc 202e
 - cmake
 - vcpkg
 - ninja 
+
 
 
 
