@@ -32,7 +32,7 @@ npm run view // run exe file
 ```
 
 ## used tools:
-- msvc 202e
+- msvc 2022
 - cmake
 - vcpkg
 - ninja 
