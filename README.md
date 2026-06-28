@@ -6,7 +6,7 @@
 
 https://github.com/WBhlietue/seewkRunner
 
-2. install tools
+2. install tools (cmake, ninja, vcpkg), you need install MSVC2022 manually
 ```
 seewkInit
 ```
