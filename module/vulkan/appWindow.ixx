@@ -180,7 +180,11 @@ public:
         mousePositionX -= Width / 2;
         mousePositionY -= Height / 2;
         MouseMove();
-        drawFrame();
+        if(isDirty){
+            isDirty = false;
+            drawFrame();
+        }
+
         // mainLoop();
     }
     bool isWindow()
@@ -197,6 +201,10 @@ public:
     Vec2 GetMousePosition()
     {
         return Vec2(mousePositionX, mousePositionY);
+    }
+    void SetDirty()
+    {
+        isDirty = true;
     }
 
 private:
@@ -249,6 +257,7 @@ private:
     VKTextureManager textureManager;
 
     Mesh squareMesh;
+    bool isDirty = true;
     void Init()
     {
         glfwSetWindowUserPointer(window.getWindow(), this);
@@ -822,8 +831,13 @@ private:
         }
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
-        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+
+        if(true){
+            std::cout << "draw frame\n";
+            isDirty = false;
+            vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+            recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+        }
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

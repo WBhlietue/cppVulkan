@@ -3,7 +3,6 @@
 #include <core/classes/vkObject.h>
 #include <functional>
 
-
 // using S_Object = SeewkObject&;
 constexpr int MOUSE_ENTER = 0;
 constexpr int MOUSE_STAY = 1;
@@ -20,17 +19,18 @@ class SeewkObject
     int height;
     int x;
     int y;
-    float borderRadius;
+    int borderRadius;
     Color color;
     int texture_id;
     VKObject vkObject;
-    std::function<void()> onMouseEnter = []() {};
-    std::function<void()> onMouseExit = []() {};
-    std::function<void()> onMouseStay = []() {};
-    std::function<void(int)> onMouseDown = [](int button) {};
-    std::function<void(int)> onMouseUp = [](int button) {};
-    std::function<void(int)> onMouseClick = [](int button) {};
-    std::function<void(int)> onMouseDrag = [](int button) {};
+    std::function<void()> onMouseEnter;
+    std::function<void()> onMouseExit;
+    std::function<void()> onMouseStay;
+    std::function<void(int)> onMouseDown;
+    std::function<void(int)> onMouseUp;
+    std::function<void(int)> onMouseClick;
+    std::function<void(int)> onMouseDrag;
+    std::function<void()> onStateChanged = []() {};
     bool isMouseEnter = false;
     int mouseDownX;
     int mouseDownY;
@@ -47,6 +47,7 @@ public:
         if (onMouseEnter)
         {
             onMouseEnter();
+            onStateChanged();
             return true;
         }
         return false;
@@ -57,6 +58,7 @@ public:
         if (onMouseExit)
         {
             onMouseExit();
+            onStateChanged();
             return true;
         }
         return false;
@@ -67,6 +69,7 @@ public:
         if (onMouseStay)
         {
             onMouseStay();
+            onStateChanged();
             return true;
         }
         return false;
@@ -78,6 +81,7 @@ public:
         if (onMouseDown)
         {
             onMouseDown(button);
+            onStateChanged();
             mouseDownX = mX;
             mouseDownY = mY;
             return true;
@@ -94,6 +98,7 @@ public:
         if (onMouseUp)
         {
             onMouseUp(button);
+            onStateChanged();
             return true;
         }
         return false;
@@ -103,6 +108,7 @@ public:
         if (onMouseClick)
         {
             onMouseClick(button);
+            onStateChanged();
             return true;
         }
         return false;
@@ -112,6 +118,7 @@ public:
         if (onMouseDrag)
         {
             onMouseDrag(downedMouse);
+            onStateChanged();
             return true;
         }
         return false;
@@ -154,7 +161,7 @@ public:
                     return MOUSE_EXIT;
             }
         }
-        
+
         return MOUSE_NONE;
     }
     int ActionsButton(Vec2 point, int button, int action, int mods)
@@ -173,7 +180,7 @@ public:
                     return MOUSE_UP;
             }
         }
-        
+
         return MOUSE_NONE;
     }
     Vec2 GetPosition()
@@ -182,9 +189,14 @@ public:
     }
     SeewkObject &SetPosition(Vec2 position)
     {
+        if (x == position.x && y == position.y)
+        {
+            return *this;
+        }
         x = position.x;
         y = position.y;
         vkObject.material.pos = Vec2(x, y);
+        onStateChanged();
         return *this;
     }
     Vec2 GetSize()
@@ -193,9 +205,14 @@ public:
     }
     SeewkObject &SetSize(Vec2 size)
     {
+        if (width == size.x && height == size.y)
+        {
+            return *this;
+        }
         width = size.x;
         height = size.y;
         vkObject.material.size = Vec2(width, height);
+        onStateChanged();
         return *this;
     }
     SeewkObject &SetMouseEnter(std::function<void()> f)
@@ -239,23 +256,37 @@ public:
     }
     SeewkObject &SetColor(Color c)
     {
+        if (color == c)
+        {
+            return *this;
+        }
         color = c;
         vkObject.material.color = color;
+        onStateChanged();
         return *this;
     }
-    float GetBorderRadius()
+    int GetBorderRadius()
     {
         return borderRadius;
     }
-    SeewkObject &SetBorderRadius(float r)
+    SeewkObject &SetBorderRadius(int r)
     {
+        if (borderRadius == r)
+        {
+            return *this;
+        }
         borderRadius = r;
         vkObject.material.borderRadius = borderRadius;
+        onStateChanged();
         return *this;
     }
     VKObject &GetVK()
     {
         return vkObject;
+    }
+    void SetOnStateChanged(std::function<void()> f)
+    {
+        onStateChanged = f;
     }
 };
 

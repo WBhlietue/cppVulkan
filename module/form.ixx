@@ -30,6 +30,11 @@ namespace seewk::main
         {
             appWindow.Loop();
         }
+        void AfterLoad() override
+        {
+            appWindow.SetDirty();
+            std::cout << "after load \n";
+        }
         bool isWindow() override
         {
             return appWindow.isWindow();
@@ -57,15 +62,18 @@ namespace seewk::main
             // delete this;
         }
 
-        SwkObject CreateObject()
+        SeewkObject &CreateObject()
         {
-            return IWindow::swkObjectCreate();
+            SeewkObject &obj = IWindow::swkObjectCreate();
+            obj.SetOnStateChanged([this]()
+                                  { this->appWindow.SetDirty(); });
+
+            return obj;
         }
         Vec2 GetMousePosition()
         {
             return appWindow.GetMousePosition();
         }
-
 
     private:
         std::vector<int> objects;

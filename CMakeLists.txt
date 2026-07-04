@@ -1,14 +1,28 @@
 cmake_minimum_required(VERSION 3.28)
 
+if(NOT CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VCPKG_ROOT})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "Vcpkg toolchain file")
+        message(STATUS "Auto-loaded vcpkg from: ${CMAKE_TOOLCHAIN_FILE}")
+    else()
+        message(WARNING "VCPKG_ROOT not set, vcpkg dependencies may fail!")
+    endif()
+endif()
+
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
 set(PROJECT_NAME Test)
+#set(VCPKG_TARGET_TRIPLET "x64-mingw-static" CACHE STRING "")
 set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
 
 
 project(${PROJECT_NAME})
 
+#set(CMAKE_C_COMPILER gcc)
+#set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_C_COMPILER cl)
 set(CMAKE_CXX_COMPILER cl)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

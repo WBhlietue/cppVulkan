@@ -20,6 +20,7 @@ namespace seewk
             auto p = ptr.get();
             windows.push_back(std::move(ptr));
             p->OnLoad();
+            
             return *p;
         }
         
