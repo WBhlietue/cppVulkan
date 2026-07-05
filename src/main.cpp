@@ -49,26 +49,26 @@ public:
         //            .SetMouseExit([this]()
         //                          { this->change = false; });
 
-        // obj2 = &CreateObject()
-        //             .SetPosition(Vec2(100, 0))
-        //             .SetSize(Vec2(200, 200))
-        //             .SetColor(Color(r, g, b, 1))
-        //             .SetBorderRadius(border)
-        //             .SetClick([this](int button)
-        //                       { this->obj2->SetColor({GetRandomFloat(0.0f, 1.0f),
-        //                                               GetRandomFloat(0.0f, 1.0f),
-        //                                               GetRandomFloat(0.0f, 1.0f),
-        //                                               1}); })
-        //             .SetMouseDown([this](int button)
-        //                           { this->obj2PosOffset = GetMousePosition() - this->obj2->GetPosition(); })
-        //             .SetDrag([this](int button)
-        //                      {
-        //                         Vec2 mousePosition = GetMousePosition();
-        //                         this->obj2->SetPosition(mousePosition - this->obj2PosOffset); });
+        obj2 = &CreateObject()
+                    .SetPosition(Vec2(100, 0))
+                    .SetSize(Vec2(200, 200))
+                    .SetColor(Color(r, g, b, 1))
+                    .SetBorderRadius(border)
+                    .SetClick([this](int button)
+                              { this->obj2->SetColor({GetRandomFloat(0.0f, 1.0f),
+                                                      GetRandomFloat(0.0f, 1.0f),
+                                                      GetRandomFloat(0.0f, 1.0f),
+                                                      1}); })
+                    .SetMouseDown([this](int button)
+                                  { this->obj2PosOffset = GetMousePosition() - this->obj2->GetPosition(); })
+                    .SetDrag([this](int button)
+                             {
+                                Vec2 mousePosition = GetMousePosition();
+                                this->obj2->SetPosition(mousePosition - this->obj2PosOffset); });
     }
     void OnLoop(float deltaTime) override
     {
-        std::cout << 1 / deltaTime << std::endl;
+        std::cout << "Loop per seconds: " <<  1 / deltaTime << std::endl;
         // angle += speed;
         // int x = sin(angle * PI / 180.0) * radius;
         // int y = cos(angle * PI / 180.0) * radius;

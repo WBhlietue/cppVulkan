@@ -37,6 +37,7 @@ class SeewkObject
     int clickThreshold = 10;
     bool isMouseDown = false;
     int downedMouse = -1;
+    bool mouseEvent = false;
 
 public:
     SeewkObject() {}
@@ -134,11 +135,14 @@ public:
     }
     int Actions(Vec2 point)
     {
+        if (!mouseEvent)
+            return 0;
         if (isMouseDown)
         {
             return MouseDrag();
         }
         bool result = AABBDetect(point);
+
         if (result)
         {
             if (isMouseEnter)
@@ -218,36 +222,43 @@ public:
     SeewkObject &SetMouseEnter(std::function<void()> f)
     {
         onMouseEnter = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetMouseExit(std::function<void()> f)
     {
         onMouseExit = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetMouseStay(std::function<void()> f)
     {
         onMouseStay = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetMouseUp(std::function<void(int)> f)
     {
         onMouseUp = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetMouseDown(std::function<void(int)> f)
     {
         onMouseDown = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetClick(std::function<void(int)> f)
     {
         onMouseClick = f;
+        mouseEvent = true;
         return *this;
     }
     SeewkObject &SetDrag(std::function<void(int)> f)
     {
         onMouseDrag = f;
+        mouseEvent = true;
         return *this;
     }
     Color GetColor()

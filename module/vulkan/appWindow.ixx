@@ -104,14 +104,6 @@ export class AppWindow
         for (int i = 0; i < objects.size(); i++)
         {
             int result = objects[i]->Actions({mousePositionX, mousePositionY});
-            // if (result == MOUSE_ENTER)
-            // {
-            //     if (onFocused)
-            //     {
-            //         onFocused->MouseExit();
-            //     }
-            //     onFocused = objects[i].get();
-            // }
         }
     }
     void MouseButton(int button, int action, int mods)
@@ -180,10 +172,7 @@ public:
         mousePositionX -= Width / 2;
         mousePositionY -= Height / 2;
         MouseMove();
-        if(isDirty){
-            isDirty = false;
-            drawFrame();
-        }
+        drawFrame();
 
         // mainLoop();
     }
@@ -205,6 +194,8 @@ public:
     void SetDirty()
     {
         isDirty = true;
+        std::fill(imageInitialized.begin(), imageInitialized.end(), false);
+
     }
 
 private:
@@ -513,6 +504,8 @@ private:
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
+        imageInitialized.resize(swapChainImages.size(), false);
+
         Log::print("end create swapchain");
     }
 
@@ -549,11 +542,11 @@ private:
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VkAttachmentReference colorAttachmentRef{};
@@ -734,6 +727,7 @@ private:
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
+    std::vector<bool> imageInitialized;
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
     {
@@ -744,45 +738,55 @@ private:
         {
             throw std::runtime_error("failed to begin recording command buffer!");
         }
-
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
-
-        VkClearValue clearColor = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
-
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline.graphicsPipeline);
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float)swapChainExtent.width;
-        viewport.height = (float)swapChainExtent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = swapChainExtent;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        // for (const auto &obj : vkObject){
-        //     DrawObject(commandBuffer, obj);
-        // }
-        auto &objs = iWindow->GetObjects();
-        for (int i = 0; i < objs.size(); i++)
+        if (isDirty || !imageInitialized[imageIndex])
         {
-            DrawObject(commandBuffer, objs[i]->GetVK());
-        }
+            isDirty = false;
+            imageInitialized[imageIndex] = true;
 
-        vkCmdEndRenderPass(commandBuffer);
+            VkClearValue clearColor = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
+            renderPassInfo.clearValueCount = 1;
+            renderPassInfo.pClearValues = &clearColor;
+            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline.graphicsPipeline);
+
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float)swapChainExtent.width;
+            viewport.height = (float)swapChainExtent.height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent = swapChainExtent;
+            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+            auto &objs = iWindow->GetObjects();
+            for (int i = 0; i < objs.size(); i++)
+            {
+                DrawObject(commandBuffer, objs[i]->GetVK());
+            }
+            std::cout << objs.size() << std::endl;
+
+            vkCmdEndRenderPass(commandBuffer);
+        }
+        else
+        {
+            renderPassInfo.clearValueCount = 0;
+
+            renderPassInfo.pClearValues = nullptr;
+
+            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            vkCmdEndRenderPass(commandBuffer);
+        }
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         {
@@ -832,12 +836,8 @@ private:
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-        if(true){
-            std::cout << "draw frame\n";
-            isDirty = false;
-            vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-            recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
-        }
+        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -885,6 +885,9 @@ private:
         }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+        // int a;
+        // std::cin >> a;
     }
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats)
