@@ -1,12 +1,12 @@
 #ifndef VKTextureManager_h
 #define VKTextureManager_h
 
+
 #include<vulkan/vulkan.h>
 #include<string>
 #include<vector>
 #include<stb_image.h>
 
-#define STB_IMAGE_IMPLEMENTATION
 
 struct Texture
 {

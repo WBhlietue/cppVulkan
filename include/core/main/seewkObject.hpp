@@ -276,6 +276,12 @@ public:
         onStateChanged();
         return *this;
     }
+    SeewkObject &SetTexture(int textureId){
+        texture_id = textureId;
+        vkObject.material.textureID = texture_id;
+        onStateChanged();
+        return *this;
+    }
     int GetBorderRadius()
     {
         return borderRadius;

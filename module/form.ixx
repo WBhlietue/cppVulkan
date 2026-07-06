@@ -26,18 +26,32 @@ namespace seewk::main
         Form() : appWindow(this)
         {
         }
+
+        void SetTextureInit(std::function<void()> init)
+        {
+            appWindow.textureInit = init;
+        }
+
+        void PreLoad() override
+        {
+        }
+
         void Loop() override
         {
             appWindow.Loop();
         }
-        void AfterLoad() override
+        void AfterLoad() override final
         {
             appWindow.SetDirty();
-            std::cout << "after load \n";
+            appWindow.load();
         }
         bool isWindow() override
         {
             return appWindow.isWindow();
+        }
+        int GetTexture(std::string path)
+        {
+            return appWindow.LoadTexture(path);
         }
         FormType type = FormType::USE_UPDATE;
         void Show()

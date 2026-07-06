@@ -21,7 +21,7 @@ module;
 #include <core/classes/VKTextureManager.h>
 #include <enter.h>
 
-// #include <stb_image.h>
+#include <stb_image.h>
 
 #include <core/classes/vkObject.h>
 #include <core/classes/objectActions.h>
@@ -129,6 +129,7 @@ public:
         Log::print("naniiiiiii");
         Init();
         window.Show();
+        // w->PreLoad();
         run();
     }
     void run()
@@ -137,7 +138,8 @@ public:
         Log::print("run");
         squareMesh = createSquareMesh();
         // OnStart();
-        load();
+        // load();
+        textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
         // mainLoop();
         // cleanup();
     }
@@ -195,8 +197,20 @@ public:
     {
         isDirty = true;
         std::fill(imageInitialized.begin(), imageInitialized.end(), false);
-
     }
+    void load()
+    {
+        Log::print("load");
+        
+        // LoadTextures();
+        // textureInit();
+        graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
+        createFramebuffers();
+        createCommandBuffers();
+        Log::print("endload");
+    }
+
+    std::function<void()> textureInit;
 
 private:
     std::vector<VKObject> vkObject;
@@ -249,6 +263,7 @@ private:
 
     Mesh squareMesh;
     bool isDirty = true;
+
     void Init()
     {
         glfwSetWindowUserPointer(window.getWindow(), this);
@@ -352,16 +367,6 @@ private:
         createCommandPool();
         createSyncObjects();
         Log::print("end init vulkan desu");
-    }
-    void load()
-    {
-        Log::print("load");
-        textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
-        // LoadTextures();
-        graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
-        createFramebuffers();
-        createCommandBuffers();
-        Log::print("endload");
     }
 
     void mainLoop()
@@ -542,7 +547,7 @@ private:
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = swapChainImageFormat;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -744,49 +749,48 @@ private:
         renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
-        if (isDirty || !imageInitialized[imageIndex])
+        // if (isDirty || !imageInitialized[imageIndex])
+        // {
+        //     isDirty = false;
+        //     imageInitialized[imageIndex] = true;
+
+        VkClearValue clearColor = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline.graphicsPipeline);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)swapChainExtent.width;
+        viewport.height = (float)swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        auto &objs = iWindow->GetObjects();
+        for (int i = 0; i < objs.size(); i++)
         {
-            isDirty = false;
-            imageInitialized[imageIndex] = true;
-
-            VkClearValue clearColor = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
-            renderPassInfo.clearValueCount = 1;
-            renderPassInfo.pClearValues = &clearColor;
-            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline.graphicsPipeline);
-
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float)swapChainExtent.width;
-            viewport.height = (float)swapChainExtent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = swapChainExtent;
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-            auto &objs = iWindow->GetObjects();
-            for (int i = 0; i < objs.size(); i++)
-            {
-                DrawObject(commandBuffer, objs[i]->GetVK());
-            }
-            std::cout << objs.size() << std::endl;
-
-            vkCmdEndRenderPass(commandBuffer);
+            DrawObject(commandBuffer, objs[i]->GetVK());
         }
-        else
-        {
-            renderPassInfo.clearValueCount = 0;
 
-            renderPassInfo.pClearValues = nullptr;
+        vkCmdEndRenderPass(commandBuffer);
+        // }
+        // else
+        // {
+        //     renderPassInfo.clearValueCount = 0;
 
-            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //     renderPassInfo.pClearValues = nullptr;
 
-            vkCmdEndRenderPass(commandBuffer);
-        }
+        //     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        //     vkCmdEndRenderPass(commandBuffer);
+        // }
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         {

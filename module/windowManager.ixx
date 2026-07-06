@@ -19,8 +19,9 @@ namespace seewk
             std::unique_ptr<T> ptr = std::make_unique<T>();
             auto p = ptr.get();
             windows.push_back(std::move(ptr));
+            p->PreLoad();
             p->OnLoad();
-            
+            p->AfterLoad();
             return *p;
         }
         
