@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 
 if(NOT CMAKE_TOOLCHAIN_FILE)
     if(DEFINED ENV{VCPKG_ROOT})
@@ -10,6 +10,13 @@ if(NOT CMAKE_TOOLCHAIN_FILE)
     endif()
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+
+if(NOT VCPKG_TARGET_TRIPLET)
+    set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "vcpkg triplet")
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -28,12 +35,15 @@ set(CMAKE_CXX_COMPILER cl)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if(MSVC)
-    add_compile_options(/experimental:module)
-endif()
+
+add_compile_options(/experimental:module)
+# add_compile_options(/module:std)
+# add_compile_options(/std:c++latest)
+   
 
 
-file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/module/*.ixx")
+file(GLOB_RECURSE MODULE_SOURCES "${CMAKE_SOURCE_DIR}/core/module/*.cppm")
+file(GLOB_RECURSE MODULE_CPP "${CMAKE_SOURCE_DIR}/core/src/*.cpp")
 file(GLOB_RECURSE CPP_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 
@@ -44,8 +54,10 @@ find_package(Freetype REQUIRED)
 
 #add_library(${PROJECT_NAME} STATIC   ${CPP_SOURCES}   ${MODULE_SOURCES})
 
-add_executable(${PROJECT_NAME} ${CPP_SOURCES} ${MODULE_SOURCES})
-#add_executable(${PROJECT_NAME} WIN32 ${CPP_SOURCES} ${MODULE_SOURCES})
+add_executable(${PROJECT_NAME} ${CPP_SOURCES} ${MODULE_CPP} ${MODULE_SOURCES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE VULKAN_HPP_ENABLE_CPP20_MODULE)
+
+#add_executable(${PROJECT_NAME} WIN32 ${CPP_SOURCES} ${MODULE_CPP} ${MODULE_SOURCES})
 #target_link_options(${PROJECT_NAME} PRIVATE /ENTRY:mainCRTStartup)
 
 

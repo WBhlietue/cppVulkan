@@ -9,7 +9,7 @@ namespace seewk
 {
     export class WindowManager
     {
-        static inline std::vector<std::unique_ptr<IWindow>> windows={};
+        static inline std::vector<std::unique_ptr<IWindow>> windows = {};
 
     public:
         template <std::derived_from<IWindow> T>
@@ -24,7 +24,7 @@ namespace seewk
             p->AfterLoad();
             return *p;
         }
-        
+
         static void Loop(float deltaTime)
         {
             for (int i = 0; i < windows.size(); i++)
@@ -33,8 +33,10 @@ namespace seewk
                 windows[i]->OnLoop(deltaTime);
             }
         }
-        static bool IsWindow(){
-            if(windows.size() > 0){
+        static bool IsWindow()
+        {
+            if (windows.size() > 0)
+            {
                 return windows[0]->isWindow();
             }
             return false;
