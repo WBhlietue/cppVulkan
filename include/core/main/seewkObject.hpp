@@ -3,7 +3,6 @@
 #include <core/classes/vkObject.h>
 #include <functional>
 
-// using S_Object = SeewkObject&;
 constexpr int MOUSE_ENTER = 0;
 constexpr int MOUSE_STAY = 1;
 constexpr int MOUSE_EXIT = 2;

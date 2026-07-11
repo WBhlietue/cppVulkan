@@ -3,9 +3,13 @@
 #include <random>
 #include <core/core.h>
 import seewk;
+import seewk.tween;
 
 const float PI = 3.1415926;
 int texture1 = -1;
+
+TweenManager &tManager = TweenManager::GetInstance();
+
 void LoadTextures()
 {
 }
@@ -43,6 +47,7 @@ public:
 
     void OnLoad() override
     {
+
         // texture1 = GetTexture("assets/test.jpg");
         // for(int i = -400; i < 400; i++){
         //     for(int j = -300; j < 300; j++){
@@ -61,8 +66,8 @@ public:
         //                          { this->change = false; });
 
         obj2 = &CreateObject()
-                    .SetPosition(Vec2(100, 0))
-                    .SetSize(Vec2(320, 180))
+                    .SetPosition(Vec2(0, 0))
+                    .SetSize(Vec2(640, 360))
                     .SetColor(Color(r, g, b, 1))
                     .SetBorderRadius(border)
                     .SetClick([this](int button)
@@ -77,6 +82,9 @@ public:
                                 Vec2 mousePosition = GetMousePosition();
                                 this->obj2->SetPosition(mousePosition - this->obj2PosOffset); })
                     .SetTexture(texture1);
+        tManager.NumberTween(0, 100, 0.5, 0, [this](int x)
+                             { this->obj2->SetSize({640*x/100, 360*x/100}); }, []
+                             { std::cout << "tween Done\n"; });
     }
     void OnLoop(float deltaTime) override
     {

@@ -2,43 +2,32 @@ module;
 export module VulkanCore;
 import AppWindow;
 import WindowManager;
+import seewk.tween;
 export class VulkanCore
 {
+
 public:
-    // AppWindow win;
+    TweenManager& tManager;
+    VulkanCore():tManager(TweenManager::GetInstance())
+    {
+       
+    }
     void run()
     {
-        // windows[0]->Loop();
         auto lastTime = std::chrono::high_resolution_clock::now();
         const float targetFrameTime = 1.0f / 60.0f;
         while (seewk::WindowManager::IsWindow())
         {
-            
+
             auto currentTime = std::chrono::high_resolution_clock::now();
-            
+
             std::chrono::duration<float> deltaTime = currentTime - lastTime;
-            
+
             lastTime = currentTime;
-            
+            tManager.Loop(deltaTime.count());
             seewk::WindowManager::Loop(deltaTime.count());
-            // for (int i = 0; i < windows.size(); i++)
-            // {
-            //     windows[i]->Loop();
-            // }
         }
-
-        // vkDeviceWaitIdle(device);
     };
-    // void AddWindow(AppWindow &window)
-    // {
-    //     windows.push_back(window);
-    // }
-
-private:
-    // WindowManager &manager = GetWindowManager();
-    // std::vector<AppWindow *> &windows = manager.GetWindows();
-
-    //     std::vector<AppWindow> windows;
 };
 
 export VulkanCore &getCore()
