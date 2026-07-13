@@ -1,4 +1,4 @@
-# version: c++ 23
+# version: c++ 20 with module
 
 # now in development is only run in windows with msvc
 
