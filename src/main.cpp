@@ -84,11 +84,11 @@ public:
                                 this->obj2->SetPosition(mousePosition - this->obj2PosOffset); })
                     .SetTexture(texture1);
         auto &tween = tManager.NumberTween(0, 100, 0.5);
-        tween.SetEase(Ease::Square).SetUpdate([this](float x)
-                                                {
-            this->obj2->SetSize({640 * x / 100, 360 * x / 100}); }).SetComplete([]
-                                           {
-            std::cout << "tween Done\n"; });
+        tween.SetEase(Ease::Square)
+            .SetUpdate([this](float x)
+                       { this->obj2->SetSize({640 * x / 100, 360 * x / 100}); })
+            .SetComplete([]
+                         { std::cout << "tween Done\n"; });
     }
     void OnLoop(float deltaTime) override
     {
