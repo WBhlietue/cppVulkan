@@ -14,10 +14,10 @@ constexpr int MOUSE_NONE = 7;
 class SeewkObject
 {
     int id;
-    int width;
-    int height;
-    int x;
-    int y;
+    float width;
+    float height;
+    float x;
+    float y;
     int borderRadius;
     Color color;
     int texture_id;
@@ -192,10 +192,6 @@ public:
     }
     SeewkObject &SetPosition(Vec2 position)
     {
-        if (x == position.x && y == position.y)
-        {
-            return *this;
-        }
         x = position.x;
         y = position.y;
         vkObject.material.pos = Vec2(x, y);
@@ -208,10 +204,6 @@ public:
     }
     SeewkObject &SetSize(Vec2 size)
     {
-        if (width == size.x && height == size.y)
-        {
-            return *this;
-        }
         width = size.x;
         height = size.y;
         vkObject.material.size = Vec2(width, height);
@@ -266,10 +258,6 @@ public:
     }
     SeewkObject &SetColor(Color c)
     {
-        if (color == c)
-        {
-            return *this;
-        }
         color = c;
         vkObject.material.color = color;
         onStateChanged();
@@ -287,10 +275,6 @@ public:
     }
     SeewkObject &SetBorderRadius(int r)
     {
-        if (borderRadius == r)
-        {
-            return *this;
-        }
         borderRadius = r;
         vkObject.material.borderRadius = borderRadius;
         onStateChanged();

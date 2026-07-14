@@ -4,6 +4,7 @@
 #include <core/core.h>
 import seewk;
 import seewk.tween;
+import seewk.ease;
 
 const float PI = 3.1415926;
 int texture1 = -1;
@@ -82,9 +83,12 @@ public:
                                 Vec2 mousePosition = GetMousePosition();
                                 this->obj2->SetPosition(mousePosition - this->obj2PosOffset); })
                     .SetTexture(texture1);
-        tManager.NumberTween(0, 100, 0.5, 0, [this](int x)
-                             { this->obj2->SetSize({640*x/100, 360*x/100}); }, []
-                             { std::cout << "tween Done\n"; });
+        auto &tween = tManager.NumberTween(0, 100, 0.5);
+        tween.SetEase(Ease::Square).SetUpdate([this](float x)
+                                                {
+            this->obj2->SetSize({640 * x / 100, 360 * x / 100}); }).SetComplete([]
+                                           {
+            std::cout << "tween Done\n"; });
     }
     void OnLoop(float deltaTime) override
     {

@@ -126,22 +126,14 @@ public:
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
         initVulkan();
-        Log::print("naniiiiiii");
         Init();
         window.Show();
-        // w->PreLoad();
         run();
     }
     void run()
     {
-
-        Log::print("run");
         squareMesh = createSquareMesh();
-        // OnStart();
-        // load();
         textureManager.Init(device, physicalDevice, commandPool, graphicsQueue);
-        // mainLoop();
-        // cleanup();
     }
 
     void DestroyObject(VKObject object)

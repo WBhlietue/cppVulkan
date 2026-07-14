@@ -2,34 +2,74 @@ module;
 
 export module seewk.tween;
 
+import seewk.ease;
+
 struct TweenData
 {
-    int from;
-    int to;
     float duration;
-    int ease;
-    std::function<void(int step)> onUpdate;
+    AnimationEase ease;
+    std::function<void(float step)> onUpdate;
     std::function<void()> onComplete;
-    float dataDelta;
-
     float count = 0;
+    virtual void OnUpdate() = 0;
+    virtual void OnFinalUpdate() = 0;
+    TweenData &SetEase(AnimationEase e)
+    {
+        ease = e;
+        return *this;
+    }
+    TweenData &SetUpdate(std::function<void(float step)> e)
+    {
+        onUpdate = e;
+        return *this;
+    }
+    TweenData &SetComplete(std::function<void()> e)
+    {
+        onComplete = e;
+        return *this;
+    }
     bool Update(float delta)
     {
         count += delta;
         if (count >= duration)
         {
-            onUpdate(to);
+            // onUpdate(to);
+            OnFinalUpdate();
             onComplete();
             return true;
         }
-        onUpdate(from + (count / duration) * dataDelta);
+        OnUpdate();
+        // onUpdate(from + (count / duration) * dataDelta);
         return false;
+    }
+};
+
+struct NumberTweenData : TweenData
+{
+    float from;
+    float to;
+    float dataDelta;
+
+    void Init(float f, float t, float d)
+    {
+        from = f;
+        to = t;
+        duration = d;
+        dataDelta = t - f;
+    }
+    void OnUpdate() override
+    {
+        onUpdate(from + ease(count / duration) * dataDelta);
+    }
+    void OnFinalUpdate() override
+    {
+        onUpdate(to);
     }
 };
 
 export class TweenManager
 {
-    std::vector<TweenData> tweenDatas;
+    std::vector<std::unique_ptr<TweenData>> tweenDatas;
 
 public:
     void Test()
@@ -41,17 +81,25 @@ public:
         // std::cout << tweenDatas.size() << std::endl;
         for (int i = 0; i < tweenDatas.size(); i++)
         {
-            if (tweenDatas[i].Update(delta))
+            if (tweenDatas[i].get()->Update(delta))
             {
                 tweenDatas.erase(tweenDatas.begin() + i);
                 i--;
             }
         }
     }
-    void NumberTween(int from, int to, float duration, int ease, std::function<void(int step)> onUpdate, std::function<void()> onComplete)
+    NumberTweenData &NumberTween(float from, float to, float duration)
     {
-        float delta = to - from;
-        tweenDatas.push_back({from, to, duration, ease, onUpdate, onComplete, delta});
+        std::unique_ptr<NumberTweenData> ptr = std::make_unique<NumberTweenData>();
+        auto p = ptr.get();
+        p->Init(from, to, duration);
+        tweenDatas.push_back(std::move(ptr));
+        return *p;
+        // tweenDatas.push_back(NumberTweenData(from, to, duration));
+        // int size = tweenDatas.size();
+        // tweenDatas[size - 1].SetUpdate(onUpdate);
+        // tweenDatas[size - 1].SetComplete(onComplete);
+        // tweenDatas[size - 1].SetEase(ease);
     }
     static TweenManager &GetInstance()
     {
