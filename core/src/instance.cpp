@@ -1,5 +1,4 @@
 
-
 #include <glfw/glfw3.h>
 #include <vulkan/vulkan.hpp>
 #include <core/vulkan/instance.hpp>
@@ -7,16 +6,6 @@
 #include <vector>
 
 using namespace seewk::core::vulkan;
-// std::vector<const char*> getRequiredExtensions() {
-//     std::vector<const char*> extensions;
-//     extensions.push_back("VK_KHR_surrface");
-//     extensions.push_back("VK_KHR_win32_surface");
-    
-//     // 如果你启用了验证层或调试工具，再加：
-//     // extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    
-//     return extensions;
-// }
 
 std::vector<const char *> getRequiredExtensions()
 {

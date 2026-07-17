@@ -24,7 +24,6 @@ module;
 #include <stb_image.h>
 
 #include <core/classes/vkObject.h>
-#include <core/classes/objectActions.h>
 #include <core/classes/graphicPipeline.h>
 
 #include <core/vulkan/instance.hpp>
@@ -193,7 +192,7 @@ public:
     void load()
     {
         Log::print("load");
-        
+
         // LoadTextures();
         // textureInit();
         graphicPipeline.Create(device, renderPass, "shader/test_frag.spv", "shader/test_vert.spv", textureManager.textures);
@@ -203,6 +202,11 @@ public:
     }
 
     std::function<void()> textureInit;
+    void OnResize(int width, int height)
+    {
+        Width = width;
+        Height = height;
+    }
 
 private:
     std::vector<VKObject> vkObject;
@@ -259,7 +263,14 @@ private:
     void Init()
     {
         glfwSetWindowUserPointer(window.getWindow(), this);
+        glfwSetWindowSizeCallback(window.getWindow(), window_size_callback);
     }
+    static void window_size_callback(GLFWwindow *window, int width, int height)
+    {
+        auto app = reinterpret_cast<AppWindow *>(glfwGetWindowUserPointer(window));
+        app->OnResize(width, height);
+    }
+
     Mesh createSquareMesh()
     {
         Mesh mesh = {};
@@ -431,8 +442,6 @@ private:
 
         vkDeviceWaitIdle(device);
 
-        cleanupSwapChain();
-
         createSwapChain();
         createImageViews();
         createFramebuffers();
@@ -448,6 +457,7 @@ private:
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+        Log::print("1");
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
@@ -455,7 +465,7 @@ private:
         {
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
-
+        auto oldChain = swapChain;
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = surface.getSurface();
@@ -466,6 +476,9 @@ private:
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.oldSwapchain = oldChain;
+
+        Log::print("2");
 
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -486,7 +499,7 @@ private:
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-
+        Log::print("3");
         // this line slow 1s
         if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
         {

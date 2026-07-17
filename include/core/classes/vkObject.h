@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.h>
 #include <functional>
 #include <vector>
-#include "objectActions.h"
 #include "materialUBO.h"
 #include "mesh.h"
 
@@ -20,8 +19,6 @@ struct VKObject
 
     void Destroy(VkDevice device);
     void SetTexture(int textureID);
-
-    Object_OnClick AddOnClick(std::function<void()> onClick);
 };
 
 #endif

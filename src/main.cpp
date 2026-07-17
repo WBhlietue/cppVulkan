@@ -43,13 +43,11 @@ public:
 
     void PreLoad() override
     {
-        texture1 = GetTexture("assets/test.jpg");
+        texture1 = GetTexture("assets/moon.png");
     }
 
     void OnLoad() override
     {
-
-        // texture1 = GetTexture("assets/test.jpg");
         // for(int i = -400; i < 400; i++){
         //     for(int j = -300; j < 300; j++){
         //         CreateObject().SetPosition(Vec2(i, j)).SetSize(Vec2(10, 10)).SetColor(Color(GetRandomFloat(0.0f, 1.0f),GetRandomFloat(0.0f, 1.0f),GetRandomFloat(0.0f, 1.0f),1));
@@ -68,7 +66,7 @@ public:
 
         obj2 = &CreateObject()
                     .SetPosition(Vec2(0, 0))
-                    .SetSize(Vec2(640, 360))
+                    .SetSize(Vec2(500, 500))
                     .SetColor(Color(r, g, b, 1))
                     .SetBorderRadius(border)
                     .SetClick([this](int button)
@@ -83,20 +81,16 @@ public:
                                 Vec2 mousePosition = GetMousePosition();
                                 this->obj2->SetPosition(mousePosition - this->obj2PosOffset); })
                     .SetTexture(texture1);
-        auto &tween = tManager.NumberTween(0, 100, 0.5);
-        tween.SetEase(Ease::Square)
+        tManager.NumberTween(0, 100, 0.5)
+            .SetEase(Ease::Square)
             .SetUpdate([this](float x)
-                       { this->obj2->SetSize({640 * x / 100, 360 * x / 100}); })
+                       { this->obj2->SetSize({500 * x / 100, 500 * x / 100}); })
             .SetComplete([]
                          { std::cout << "tween Done\n"; });
     }
     void OnLoop(float deltaTime) override
     {
         // std::cout << "Loop per seconds: " <<  1 / deltaTime << std::endl;
-        // angle += speed;
-        // int x = sin(angle * PI / 180.0) * radius;
-        // int y = cos(angle * PI / 180.0) * radius;
-        // obj->SetPosition(Vec2(x, y));
         if (!change)
         {
             return;

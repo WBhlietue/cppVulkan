@@ -37,6 +37,7 @@ class SeewkObject
     bool isMouseDown = false;
     int downedMouse = -1;
     bool mouseEvent = false;
+    
 
 public:
     SeewkObject() {}
