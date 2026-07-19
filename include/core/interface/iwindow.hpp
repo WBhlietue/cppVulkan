@@ -16,6 +16,7 @@ class IWindow{
     virtual void PreLoad() = 0;
     virtual void OnLoad() = 0;
     virtual void AfterLoad() = 0;
+    virtual void InitWindow() = 0;
     std::vector<std::unique_ptr<SeewkObject>> objects;
     SeewkObject& swkObjectCreate(){
         std::unique_ptr<SeewkObject> ptr = std::make_unique<SeewkObject>();

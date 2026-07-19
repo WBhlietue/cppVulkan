@@ -48,6 +48,8 @@ public:
 
     void OnLoad() override
     {
+        SetWindowSize(100, 100);
+        Init();
         // for(int i = -400; i < 400; i++){
         //     for(int j = -300; j < 300; j++){
         //         CreateObject().SetPosition(Vec2(i, j)).SetSize(Vec2(10, 10)).SetColor(Color(GetRandomFloat(0.0f, 1.0f),GetRandomFloat(0.0f, 1.0f),GetRandomFloat(0.0f, 1.0f),1));
@@ -73,7 +75,7 @@ public:
                               { this->obj2->SetColor({GetRandomFloat(0.0f, 1.0f),
                                                       GetRandomFloat(0.0f, 1.0f),
                                                       GetRandomFloat(0.0f, 1.0f),
-                                                      1}); })
+                                                      1}); this->Init(); })
                     .SetMouseDown([this](int button)
                                   { this->obj2PosOffset = GetMousePosition() - this->obj2->GetPosition(); })
                     .SetDrag([this](int button)
@@ -81,12 +83,12 @@ public:
                                 Vec2 mousePosition = GetMousePosition();
                                 this->obj2->SetPosition(mousePosition - this->obj2PosOffset); })
                     .SetTexture(texture1);
-        tManager.NumberTween(0, 100, 0.5)
-            .SetEase(Ease::Square)
-            .SetUpdate([this](float x)
-                       { this->obj2->SetSize({500 * x / 100, 500 * x / 100}); })
-            .SetComplete([]
-                         { std::cout << "tween Done\n"; });
+        // tManager.NumberTween(0, 100, 0.5)
+        //     .SetEase(Ease::Square)
+        //     .SetUpdate([this](float x)
+        //                { this->obj2->SetSize({500 * x / 100, 500 * x / 100}); })
+        //     .SetComplete([]
+        //                  { std::cout << "tween Done\n"; });
     }
     void OnLoop(float deltaTime) override
     {
@@ -118,13 +120,24 @@ public:
         }
         obj->SetColor(Color(r, g, b, 1));
     }
+
+public:
+    void Init()
+    {
+        tManager.NumberTween(0, 1000, 0.5).SetEase(Ease::Square).SetUpdate([this](float x)
+                                                                           {
+                int size = x;
+                this->SetWindowPosition(960-size/2, 540-size/2);
+                this->SetWindowSize(size, size); })
+            .SetComplete([this]
+                         { this->SetWindowSize(1000, 1000); });
+    }
 };
 
-Form1 form = seewk::WindowManager::CreateWindow<Form1>();
 
 void OnStart()
 {
-    std::cout << "program start\n";
+    seewk::WindowManager::CreateWindow<Form1>();
 }
 
 void OnOver()

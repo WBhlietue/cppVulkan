@@ -26,6 +26,13 @@ namespace seewk::main
         Form() : appWindow(this)
         {
         }
+        void InitWindow() override{
+            appWindow.InitDatas();
+            PreLoad();
+            OnLoad();
+            AfterLoad();
+            
+        }
 
         void SetTextureInit(std::function<void()> init)
         {
@@ -87,6 +94,13 @@ namespace seewk::main
         Vec2 GetMousePosition()
         {
             return appWindow.GetMousePosition();
+        }
+
+        void SetWindowSize(int width, int height) {
+            appWindow.SetSize(width, height);
+        }
+        void SetWindowPosition(int x, int y){
+            appWindow.SetPosition(x, y);
         }
 
     private:

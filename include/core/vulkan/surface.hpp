@@ -8,7 +8,8 @@ namespace seewk::core::vulkan
     class Surface
     {
     public:
-        Surface(const seewk::core::vulkan::Window &window);
+        
+        void Init(const seewk::core::vulkan::Window &window);
         ~Surface();
         const vk::SurfaceKHR &getSurface() const;
 

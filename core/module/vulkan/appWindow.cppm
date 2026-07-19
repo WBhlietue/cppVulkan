@@ -119,14 +119,18 @@ export class AppWindow
     }
 
 public:
-    AppWindow(IWindow *w) : surface(window)
+    AppWindow(IWindow *w) 
     {
         iWindow = w;
         window.setFramebufferSizeCallback(framebufferResizeCallback);
         window.setMouseButtonCallback(mouseButtonCallback);
+    }
+    void InitDatas()
+    {
+        surface.Init(window);
         initVulkan();
         Init();
-        window.Show();
+        // window.Show();
         run();
     }
     void run()
@@ -206,6 +210,22 @@ public:
     {
         Width = width;
         Height = height;
+    }
+    void SetSize(int width, int height)
+    {
+        if (width == 0)
+        {
+            width = 1;
+        }
+        if (height == 0)
+        {
+            height = 1;
+        }
+        glfwSetWindowSize(window.getWindow(), width, height);
+    }
+    void SetPosition(int x, int y)
+    {
+        glfwSetWindowPos(window.getWindow(), x, y);
     }
 
 private:
@@ -457,7 +477,6 @@ private:
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-        Log::print("1");
 
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
@@ -478,8 +497,6 @@ private:
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         createInfo.oldSwapchain = oldChain;
 
-        Log::print("2");
-
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
         uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -499,7 +516,6 @@ private:
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
-        Log::print("3");
         // this line slow 1s
         if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
         {

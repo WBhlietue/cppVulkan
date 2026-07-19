@@ -2,9 +2,10 @@
 #include <core/vulkan/log.hpp>
 #include <glfw/glfw3.h>
 using namespace seewk::core::vulkan;
-Surface::Surface(const Window &window)
+
+void Surface::Init(const Window &window)
 {
-    Log::print("Creating surface...");
+    Log::print("Creating surface... new");
     VkSurfaceKHR surf;
     VkResult result = glfwCreateWindowSurface(Instance::GET().getInstance(), window.getWindow(), nullptr, &surf);
     if (result != VK_SUCCESS)
@@ -14,7 +15,7 @@ Surface::Surface(const Window &window)
     {
         surface = surf;
     }
-    Log::print("Surface created.");
+    Log::print("Surface created. new");
 }
 const vk::SurfaceKHR &Surface::getSurface() const
 {

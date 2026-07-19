@@ -6,7 +6,7 @@ Window::Window()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    // glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     window_ = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(window_, this);
 }

@@ -7,7 +7,7 @@ import seewk.ease;
 struct TweenData
 {
     float duration;
-    AnimationEase ease;
+    AnimationEase ease = Ease::Linear;
     std::function<void(float step)> onUpdate;
     std::function<void()> onComplete;
     float count = 0;
@@ -35,7 +35,10 @@ struct TweenData
         {
             // onUpdate(to);
             OnFinalUpdate();
-            onComplete();
+            if (onComplete)
+            {
+                onComplete();
+            }
             return true;
         }
         OnUpdate();
@@ -59,11 +62,17 @@ struct NumberTweenData : TweenData
     }
     void OnUpdate() override
     {
-        onUpdate(from + ease(count / duration) * dataDelta);
+        if (onUpdate)
+        {
+            onUpdate(from + ease(count / duration) * dataDelta);
+        }
     }
     void OnFinalUpdate() override
     {
-        onUpdate(to);
+        if (onUpdate)
+        {
+            onUpdate(to);
+        }
     }
 };
 

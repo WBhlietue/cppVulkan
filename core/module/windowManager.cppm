@@ -2,9 +2,12 @@ module;
 #include <core/interface/iwindow.hpp>
 #include <vector>
 #include <memory>
+#include <future>
 #include <concepts>
 #include <core/vulkan/window.hpp>
+#include <core/vulkan/log.hpp>
 export module WindowManager;
+using Log = seewk::core::vulkan::Log;
 namespace seewk
 {
     export class WindowManager
@@ -18,10 +21,22 @@ namespace seewk
         {
             std::unique_ptr<T> ptr = std::make_unique<T>();
             auto p = ptr.get();
+            Log::print("create window-------------------------------");
+            auto init_future = std::async(std::launch::async, [p]()
+                                          { p->InitWindow(); });
+            Log::print("create window done--------------------------");
             windows.push_back(std::move(ptr));
-            p->PreLoad();
-            p->OnLoad();
-            p->AfterLoad();
+            std::cout << "im waiting" << std::endl;
+            while (true)
+            {
+                auto status = init_future.wait_for(std::chrono::seconds(0));
+                if (status == std::future_status::ready)
+                {
+                    break;
+                }
+
+                glfwPollEvents();
+            }
             return *p;
         }
 
