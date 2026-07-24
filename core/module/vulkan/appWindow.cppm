@@ -132,6 +132,7 @@ public:
         Init();
         // window.Show();
         run();
+        glfwShowWindow(window.getWindow()); 
     }
     void run()
     {
@@ -160,6 +161,10 @@ public:
     int LoadTexture(std::string path)
     {
         textureManager.LoadTexture(path);
+        return textureManager.textures.size() - 1;
+    }
+    int LoadText(const unsigned char *pixels, int texWidth, int texHeight){
+        textureManager.LoadGrayTexture(pixels, texWidth, texHeight);
         return textureManager.textures.size() - 1;
     }
     void Loop()

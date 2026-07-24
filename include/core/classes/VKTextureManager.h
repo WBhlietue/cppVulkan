@@ -1,12 +1,10 @@
 #ifndef VKTextureManager_h
 #define VKTextureManager_h
 
-
-#include<vulkan/vulkan.h>
-#include<string>
-#include<vector>
-#include<stb_image.h>
-
+#include <vulkan/vulkan.h>
+#include <string>
+#include <vector>
+#include <stb_image.h>
 
 struct Texture
 {
@@ -19,7 +17,7 @@ struct Texture
 
 class VKTextureManager
 {
-    public:
+public:
     std::vector<Texture> textures;
     void Init(VkDevice d, VkPhysicalDevice pd, VkCommandPool c, VkQueue q)
     {
@@ -29,13 +27,13 @@ class VKTextureManager
         graphicsQueue = q;
     }
     void LoadTexture(const std::string &path);
+    void LoadGrayTexture(const unsigned char *pixels, int texWidth, int texHeight);
 
 private:
     VkDevice device;
     VkPhysicalDevice physicalDevice;
     VkCommandPool commandPool;
     VkQueue graphicsQueue;
-
 
     void createImage(uint32_t width, uint32_t height, VkFormat format,
                      VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,

@@ -60,6 +60,9 @@ namespace seewk::main
         {
             return appWindow.LoadTexture(path);
         }
+        int GetText(const unsigned char *pixels, int texWidth, int texHeight){
+            return appWindow.LoadText( pixels, texWidth,texHeight);
+        }
         FormType type = FormType::USE_UPDATE;
         void Show()
         {

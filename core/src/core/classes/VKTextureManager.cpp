@@ -66,6 +66,81 @@ void VKTextureManager::LoadTexture(const std::string& path) {
     textures.push_back({ textureImage, textureImageMemory, imageView, textureSampler, (uint32_t)texWidth, (uint32_t)texHeight });
 }
 
+void VKTextureManager::LoadGrayTexture(const unsigned char* pixels, int texWidth, int texHeight) {
+    VkDeviceSize imageSize = texWidth * texHeight;  
+    
+    
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    
+    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingBuffer, stagingBufferMemory);
+    
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+    
+    
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    createImage(texWidth, texHeight, 
+                VK_FORMAT_R8_UNORM,  
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                textureImage, textureImageMemory);
+    
+    
+    transitionImageLayout(textureImage, VK_FORMAT_R8_UNORM,
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    
+    copyBufferToImage(stagingBuffer, textureImage, texWidth, texHeight);
+    
+    transitionImageLayout(textureImage, VK_FORMAT_R8_UNORM,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    
+    
+    VkImageView imageView = createImageView(textureImage, VK_FORMAT_R8_UNORM);
+    
+    
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;  
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;  
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_FALSE;  
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    
+    VkSampler textureSampler;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        std::cout << "samplerError" << std::endl;
+        return ;
+    }
+    
+    
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    
+    
+    textures.push_back({ 
+        textureImage, 
+        textureImageMemory, 
+        imageView, 
+        textureSampler, 
+        (uint32_t)texWidth, 
+        (uint32_t)texHeight 
+    });
+      
+}
+
 void VKTextureManager::createImage(
     uint32_t width, uint32_t height,
     VkFormat format, VkImageTiling tiling,
@@ -124,7 +199,7 @@ VkImageView VKTextureManager::createImageView(VkImage image, VkFormat format)
     VkImageView imageView;
     if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
    
-        // std::cout << "imageview error" << std::endl;
+        
     }
 
     return imageView;
@@ -181,7 +256,7 @@ void VKTextureManager::transitionImageLayout(
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
     else {
-        // std::cout << "image layuot no support" << std::endl;
+        
        
     }
 
@@ -265,7 +340,7 @@ void VKTextureManager::createBuffer(
 
     if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
 
-        // std::cout << "buffer error" << std::endl;
+        
     }
 
     VkMemoryRequirements memRequirements;
@@ -278,7 +353,7 @@ void VKTextureManager::createBuffer(
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
     
-        // std::cout << "buffer memory error" << std::endl;
+        
     }
 
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
@@ -295,5 +370,6 @@ uint32_t VKTextureManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyF
             return i;
         }
     }
-    // std::cout << "memory type error" << std::endl;
+    return 0;
+    
 }
